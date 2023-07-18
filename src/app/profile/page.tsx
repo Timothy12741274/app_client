@@ -4,54 +4,79 @@ import {useEffect, useRef, useState} from "react";
 import axios from "axios";
 import cookie from "js-cookie";
 import {CreatePostBlock} from "@/components/createPostBlock/CreatePostBlock";
+import {useRouter, useSearchParams} from "next/navigation";
+import {Post} from "@/components/post/Post";
+import {AVATAR, baseURL, inst, userId} from "@/const/const";
 
-const BASE_URL = process.env.NEXT_PUBLIC_SERVER_BASE_URL
-const AVATAR = process.env.NEXT_PUBLIC_DEFAULT_AVATAR_URL
-const config = { withCredentials: true }
+
 
 export default function Index() {
-    const [user, setUser] = useState({})
+    const { push } = useRouter()
+
+    if (!userId) push('/login')
 
     const [posts, setPosts] = useState([])
+
+    const [user, setUser] = useState({})
+
 
     const [uploadedPhoto, setUploadedPhoto] = useState('')
 
     const [comment, setComment] = useState('')
 
-    const [showComments, setShowComments] = useState([])
+    const [isContactListShowed, setIsContactListShowed] = useState(false)
 
-    const isCommentInputShow
+    const [isRequestListShowed, setIsRequestListShowed] = useState(false)
 
     const ref = useRef(null)
 
-    const getUser = async () => setUser(await axios.get(BASE_URL + 'users/1', config).then(res => res.data))  // users/${cookie.get('userId')
+    const { get } = useSearchParams()
 
-    const getPosts = async () => setPosts(await axios.post(BASE_URL + 'posts', {ids: user.post_ids}, config).then(res => res.data))
+    const getData = async () => {
+        const { data: { user } } = await inst.get('/users/me')
 
-    const hnd = f => { setUploadedPhoto(f); const r = new FileReader(); r.onload = () => ref.current.src = r.result; r.readAsDataURL(f) }
+        const params = { pageSize: 1, pageCount: 1, pointer: 1 }
+        const {data: { posts } } = await inst.get('/posts', { params })
 
-    const addAvatarPhotoHnd = () => axios.post(BASE_URL + '/users/avatar', { uploadedPhoto }, config); ref.current.src = ''
+        setUser(user)
 
-    const showCmtHnd = id => { const prev = showComments[id]; setShowComments(s => { s[id] = !s[id]; return s}) }
+        setPosts(posts)
+    }
 
-    const likePostHnd = id => { axios.post(BASE_URL + '/users/post/' + id + '/like')}
-    const dislikePostHnd = id => { axios.post(BASE_URL + '/users/post/' + id + '/dislike')}
-    const commentPostHnd = id => { axios.post(BASE_URL + '/users/post/' + id + '/comment', { comment })}
+    const hnd = f => {
+        setUploadedPhoto(f);
 
-    useEffect(() => { getUser() }, [])
+        const r = new FileReader();
 
-    useEffect(() => { getPosts() }, [user])
+        r.onload = () => ref.current.src = r.result;
 
-    useEffect(() => { setShowComments(posts.map(p => false)) }, [posts])
+        r.readAsDataURL(f);
+    }
 
-    if (!!user[0]) return <div>loading...</div>
+    const likePostHnd = id => { inst.post('/users/post/' + id + '/like') }
 
-    const { avatar_photo_ids, second_name, first_name, city, country, description, is_online } = user
+    const dislikePostHnd = id => { inst.post('/users/post/' + id + '/dislike') }
+
+    const commentPostHnd = id => { inst.post('/users/post/' + id + '/comment', { comment }) }
+
+    const onShowContactsHnd = async () => {
+        //const body = { userIds: user.contacts }
+
+        //const { data: {u}} = await inst.post('/users/get', body)
+
+        setIsContactListShowed(s => !s)
+    }
+
+    useEffect(() => { getData() }, [])
+
+    const { id, avatar_photo_ids, second_name, first_name, city, country, description, is_online, contacts, request_user_ids, username, avatar_urls } = user ?? {}
+
+    if (!username) return <div>Loading...</div>
 
     return (
         <div>
             <div className={'photo_uploader_container'}>
-                <img className={'img'} src={!!avatar_photo_ids[1] ? BASE_URL + 'photos/' + avatar_photo_ids[0] : AVATAR}/>
+                <img className={'img'} src={!!avatar_photo_ids && !!avatar_photo_ids[1] ? baseURL + 'photos/' + avatar_photo_ids[0] : AVATAR}/>
                 <input className={'photo_uploader'} type={'file'} onChange={e => hnd(e.target.files[0])}/>
                 {
                     uploadedPhoto && <div>
@@ -63,24 +88,48 @@ export default function Index() {
             <div>{city}, {country}</div>
             <div>{description}</div>
             <div>{is_online ? 'Online' : 'Offline'}</div>
-
+                <div>
+                <div onClick={() => setIsContactListShowed(s => !s)}>{contacts.length} contacts</div>
+                    {
+                        isContactListShowed && <div>
+                            {
+                                contacts.map((c, i) => (
+                        <div key={i} className={'aligned_row'}>
+                            <img
+                                className={'avatar'}
+                                src={c.user_avatar_url ? baseURL + c.user_avatar_url : AVATAR}
+                            />
+                            <span>{c.username}</span>
+                        </div>
+                        )
+                    )}</div>}
+                </div>
+                {userId === id && <div>
+                    <div onClick={() => setIsRequestListShowed(s => !s)}>{request_user_ids.length} requests</div>
+                    {isRequestListShowed && <div>{request_user_ids.map(id => <div>
+                        <span>User</span>
+                        <span>Accept</span>
+                        <span>Decline</span>
+                    </div>)}</div>}
+                </div>}
+                {/*<button onClick={}>Add to friends</button>*/}
+                <button onClick={() => push(`/messenger?first-user-id=${userId}&second-user-id=${get('user-id')}`)}>Write a message</button>
                 <div>
                     <CreatePostBlock />
                     {
-                        posts.map((p, i) => <div>
-                            <div>{p.text}</div>
-                            {p.photo_urls.map(url => <img src={BASE_URL + url} className={'photo'}/>)}
-                            <div>
-                                <span>Like</span>
-                                <span>Dislike</span>
-                                <span onClick={() => set}>Comment</span>
-                            </div>
-                            <div>
-                                <div onClick={() => setShowComments(s => { s[i] = !s[i]; return s})}>Show comments</div>
-                                {showComments[i] && <div>}
-                            </div>
-                        </div>)
-                    }
+                        posts.map((p, i) => <Post
+                            key={i}
+                            commentPostHnd={commentPostHnd}
+                            userId={userId}
+                            dislikePostHnd={dislikePostHnd}
+                            i={i}
+                            likePostHnd={likePostHnd}
+                            p={p}
+                            setComment={setComment}
+                            username={username}
+                            avatarUrl={avatar_urls?.slice(-1)[0] ?? ''}
+                        />)
+                        }
                 </div>
         </div>
         </div>

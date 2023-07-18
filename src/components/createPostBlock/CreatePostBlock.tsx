@@ -1,5 +1,6 @@
-import {useRef, useState} from "react";
+import {createRef, useRef, useState} from "react";
 import axios from "axios";
+import {inst} from "@/const/const";
 
 type CreatePostBlockPT = {
 
@@ -12,25 +13,35 @@ export const CreatePostBlock = ({}: CreatePostBlockPT) => {
 
     const [text, setText] = useState('')
 
-    const hnd = fs => { setPhotos(fs); const r = new FileReader(); r.onload = () => ref.current.src = r.result; r.readAsDataURL(f) }
+    const hnd = fl => { setPhotos(s => [...s, fl]); const r = new FileReader(); r.onload = () => ref.current.src = r.result; r.readAsDataURL(f) }
 
-    const addPostHnd = () => axios.post(BASE_URL + '/users/post/', {text, photos})
+    const formData = new FormData()
+
+    for (let i = 0; i < photos.length; i++) {
+        formData.append('photos', photos[i]);
+    }
+    formData.append('text', text)
+
+    const addPostHnd = () => inst.post(BASE_URL + 'posts/add_post', formData)
 
     return (
         <div>
             <input onChange={e => setText(e.currentTarget.value)}/>
 
-            <div>
-                {photos.map(p => {
-                    const ref = useRef()
+            <span>
+                {
+                    Array.from(photos).map((p, i) => {
+                    const ref = createRef()
                     const r = new FileReader(); r.onload = () => ref.current.src = r.result; r.readAsDataURL(p)
 
-                    return <img ref={ref}/>
-                })}
-            </div>
+                    return <img key={i} ref={ref}/>
+                })
+                }
+            </span>
 
-            <input type={'file'} onChange={e => hnd(e.target.files)}/>
-            <button onClick={addPostHnd}></button>
+            <input placeholder={'Something new?'} type={'file'} onChange={e => hnd(e.target.files[0])}/>
+
+            <button onClick={addPostHnd}>Add Post</button>
         </div>
     )
 }

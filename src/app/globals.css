@@ -16,3 +16,31 @@ img {
     width: 150px;
     height: 150px;
 }
+
+.avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+}
+
+.user_message {
+
+}
+
+.companion_message {
+
+}
+
+.aligned_row {
+    display: flex;
+    align-items: center;
+}
+
+.comment_comments {
+    margin-left: 20px;
+    margin-top: 5px;
+}
+
+.liked {
+    background: blue;
+}
