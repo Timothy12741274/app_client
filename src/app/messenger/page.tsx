@@ -473,14 +473,14 @@ export default function Index() {
 
                 const dataForUser = `${day} ${month}`
 
-                console.log(m.time, messages[i - 1] && m.time.split('T')[0] !== currentChatMessages[i - 1].time.split('T')[0], m.time.split('T')[0], messages[i - 1] && messages[i - 1].time.split('T')[0], messages[i - 1])
+                //console.log(m.time, messages[i - 1] && m.time.split('T')[0] !== currentChatMessages[i - 1].time.split('T')[0], m.time.split('T')[0], messages[i - 1] && messages[i - 1].time.split('T')[0], messages[i - 1])
 
                 return <div
                     key={i}
                     /*ref={(el) => (divRefs.current[i] = el)}*/
                     ref={refs[i]}
                     >
-                    {firstUnreadMessageId === i && <div>Unread messages</div>}
+                    {firstUnreadMessageId === m.id && <div>Unread messages</div>}
                     {
                         (
                             (!currentChatMessages[i - 1])
