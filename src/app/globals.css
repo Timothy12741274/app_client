@@ -24,7 +24,45 @@ img {
 }
 
 .user_message {
+    position: relative;
+    left: 350px;
+}
+.user_message::after {
+/*    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: blue;
+    z-index: 1000;*/
+    content: '';
+    position: absolute;
+    top: 65%;
+    right: -11px; /* Измените значение left, чтобы настроить положение треугольника */
+    border-width: 14px;
+    border-style: solid;
+    border-color:  transparent transparent gray transparent;
+}
 
+.user_message, .companion_message {
+    background-color: gray;
+    border-radius: 15px;
+    width: 200px;
+    padding: 10px;
+}
+
+.message_data_label {
+    background: #a29b9b;
+    border-radius: 15px;
+    width: 600px;
+    padding: 5px;
+    display: flex;
+    justify-content: center;
+    margin: 10px 0;
+
+}
+
+.chat_panel {
+    background: #c2c1c1;
+    width: 620px;
 }
 
 .companion_message {
@@ -43,4 +81,12 @@ img {
 
 .liked {
     background: blue;
+}
+
+.self_message {
+    left: 40px;
+}
+
+.partner_message {
+
 }

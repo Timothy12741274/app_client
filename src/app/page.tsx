@@ -4,6 +4,8 @@ import {useEffect, useRef, useState} from "react";
 import {JobCard} from "@/components/jobCard/JobCard";
 import axios from "axios";
 import {jobDto} from '../dto/jobDto'
+import {Provider} from "react-redux";
+import {store} from "@/store/store";
 
 type vt = string | number | boolean
 
@@ -80,6 +82,7 @@ export default function Home() {
         <div style={{display: 'flex', flexDirection: 'column', gap: '5px'}}>{jobs.map(j => <JobCard {...j} />)}</div>
 
         {isLoading && <div>isLoading...</div>}
+
     </main>
   )
 }

@@ -1,22 +1,16 @@
 'use client'
 
-import {useEffect, useRef, useState} from "react";
-import axios from "axios";
-import cookie from "js-cookie";
-import {CreatePostBlock} from "@/components/createPostBlock/CreatePostBlock";
 import {useRouter, useSearchParams} from "next/navigation";
+import {AVATAR, baseURL, inst} from "@/const/const";
+import {useEffect, useRef, useState} from "react";
+import {CreatePostBlock} from "@/components/createPostBlock/CreatePostBlock";
 import {Post} from "@/components/post/Post";
-import {AVATAR, baseURL, inst } from "@/const/const";
 
+type ProfilePT = {
+    userId: string
+}
 
-
-export default function Index() {
-    const { get } = useSearchParams()
-
-    // const [userId, setUserId] = useState(get('user_id') ?? cookie.get('userId'))
-    // const userId = cookie.get('userId')
-    const userId = get('user-id') ?? cookie.get('userId')
-
+export const Profile = ({ userId }: ProfilePT) => {
     const { push } = useRouter()
 
     if (!userId) push('/login')
@@ -36,10 +30,12 @@ export default function Index() {
 
     const ref = useRef(null)
 
-    const getData = async () => {
-        const { data: { user } } = await inst.get('/users/get-user/' + userId)
+    const { get } = useSearchParams()
 
-        const params = { pageSize: 10, pageCount: 1, pointer: 1, userId }
+    const getData = async () => {
+        const { data: { user } } = await inst.get('/users/me', { params: { userId }})
+
+        const params = { pageSize: 1, pageCount: 1, pointer: 1 }
         const {data: { posts } } = await inst.get('/posts', { params })
 
         setUser(user)
@@ -57,11 +53,11 @@ export default function Index() {
         r.readAsDataURL(f);
     }
 
-    const likePostHnd = id => { inst.post('/users/post/' + id + '/like') }
+/*    const likePostHnd = id => { inst.post('/users/post/' + id + '/like') }
 
     const dislikePostHnd = id => { inst.post('/users/post/' + id + '/dislike') }
 
-    const commentPostHnd = id => { inst.post('/users/post/' + id + '/comment', { comment }) }
+    const commentPostHnd = id => { inst.post('/users/post/' + id + '/comment', { comment, userId }) }*/
 
     const onShowContactsHnd = async () => {
         //const body = { userIds: user.contacts }
@@ -72,10 +68,6 @@ export default function Index() {
     }
 
     useEffect(() => { getData() }, [])
-    useEffect(() => { getData() }, [get('user_id')])
-    // useEffect(() => { console.log('changed') }, [get('user_id')])
-
-    // useEffect(() => { if (get('user_id')) setUserId(get('user_id'))}, [get('user_id')])
 
     const { id, avatar_photo_ids, second_name, first_name, city, country, description, is_online, contacts, request_user_ids, username, avatar_urls } = user ?? {}
 
@@ -84,38 +76,33 @@ export default function Index() {
     return (
         <div>
             <div className={'photo_uploader_container'}>
-                <img
-                    className={'img'}
-                    src={!!avatar_photo_ids && !!avatar_photo_ids[1] ? baseURL + 'photos/' + avatar_photo_ids[0] : AVATAR}
-                />
-
+                <img className={'img'} src={!!avatar_photo_ids && !!avatar_photo_ids[1] ? baseURL + 'photos/' + avatar_photo_ids[0] : AVATAR}/>
                 <input className={'photo_uploader'} type={'file'} onChange={e => hnd(e.target.files[0])}/>
-
                 {
                     uploadedPhoto && <div>
-                    {ref.current.src && <img ref={ref}/>}
-                    <button onClick={addAvatarPhotoHnd}>Add</button>
+                        {ref.current.src && <img ref={ref}/>}
+                        <button onClick={addAvatarPhotoHnd}>Add</button>
                     </div>
                 }
-            <div>{first_name} {second_name}</div>
-            <div>{city}, {country}</div>
-            <div>{description}</div>
-            <div>{is_online ? 'Online' : 'Offline'}</div>
+                <div>{first_name} {second_name}</div>
+                <div>{city}, {country}</div>
+                <div>{description}</div>
+                <div>{is_online ? 'Online' : 'Offline'}</div>
                 <div>
-                <div onClick={() => setIsContactListShowed(s => !s)}>{contacts ? contacts.length : 0} contacts</div>
+                    <div onClick={() => setIsContactListShowed(s => !s)}>{contacts.length} contacts</div>
                     {
                         isContactListShowed && <div>
                             {
                                 contacts.map((c, i) => (
-                        <div key={i} className={'aligned_row'}>
-                            <img
-                                className={'avatar'}
-                                src={c.user_avatar_url ? baseURL + c.user_avatar_url : AVATAR}
-                            />
-                            <span>{c.username}</span>
-                        </div>
-                        )
-                    )}</div>}
+                                        <div key={i} className={'aligned_row'}>
+                                            <img
+                                                className={'avatar'}
+                                                src={c.user_avatar_url ? baseURL + c.user_avatar_url : AVATAR}
+                                            />
+                                            <span>{c.username}</span>
+                                        </div>
+                                    )
+                                )}</div>}
                 </div>
                 {userId === id && <div>
                     <div onClick={() => setIsRequestListShowed(s => !s)}>{request_user_ids.length} requests</div>
@@ -126,8 +113,12 @@ export default function Index() {
                     </div>)}</div>}
                 </div>}
                 {/*<button onClick={}>Add to friends</button>*/}
-                <button onClick={() => push(`/messenger?user-id=${get('user-id')}`)}>Write a message</button>
-                {/*<button onClick={() => push(`/messenger?first-user-id=${userId}&second-user-id=${get('user-id')}`)}>Write a message</button>*/}
+                {/*<button onClick={() => push(`/messenger?first-user-id=${userId}&second-user-id=${get('user-id')}`)}>*/}
+                {/*    Write a message*/}
+                {/*</button>*/}
+                <button onClick={() => alert('done')}>
+                    Write a message
+                </button>
                 <div>
                     <CreatePostBlock />
                     {
@@ -143,9 +134,9 @@ export default function Index() {
                             username={username}
                             avatarUrl={avatar_urls?.slice(-1)[0] ?? ''}
                         />)
-                        }
+                    }
                 </div>
-        </div>
+            </div>
         </div>
     )
 }

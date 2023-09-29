@@ -1,5 +1,10 @@
+'use client'
+
 import './globals.css'
 import { Inter } from 'next/font/google'
+import {Provider} from "react-redux";
+import {store} from "@/store/store";
+import {AuthWrapper} from "@/wrapper/authWrapper";
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -15,7 +20,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+    <Provider store={store}>
+
+      <body className={inter.className}>
+      <AuthWrapper>
+        {children}
+      </AuthWrapper>
+      </body>
+    </Provider>
     </html>
   )
 }

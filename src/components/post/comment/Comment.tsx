@@ -1,5 +1,6 @@
 import {useEffect, useState} from "react";
 import {inst, baseURL, AVATAR, userId} from "@/const/const";
+import {useRouter} from "next/navigation";
 
 type CommentPT = {
     c: any
@@ -9,6 +10,8 @@ type CommentPT = {
 }
 
 export const Comment = ({ c, key, avatarUrl, username }: CommentPT) => {
+
+    const { push } = useRouter()
 
     const [comments, setComments] = useState([])
 
@@ -20,11 +23,10 @@ export const Comment = ({ c, key, avatarUrl, username }: CommentPT) => {
 
     const [isShowCommentInput, setIsShowCommentInput] = useState(false)
 
-    const isLiked = c.liked_user_ids.includes(Number(userId))
+    const isLiked = c.liked_user_ids && c.liked_user_ids.includes(Number(userId))
 
     const getAndSetComments = async () => {
         const params = { commented_element_id: c.id, commented_element_type: 'comment' }
-
         const { data: { comments } } = await inst.get('/comments', { params })
 
         setComments(comments)
@@ -49,7 +51,7 @@ export const Comment = ({ c, key, avatarUrl, username }: CommentPT) => {
 
 
     return <div key={key}>
-        <div>
+        <div onClick={() => push(`/profile?user-id=${c.user_id}`)} style={{cursor: "pointer"}}>
             <img className={'avatar'}
                  src={c.user_avatar_url ? baseURL + c.user_avatar_url : AVATAR}
             />
