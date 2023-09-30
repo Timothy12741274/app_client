@@ -490,8 +490,9 @@ export default function Index() {
 
                 const dataForUser = `${day} ${month}`
 
-                //console.log(m.time, messages[i - 1] && m.time.split('T')[0] !== currentChatMessages[i - 1].time.split('T')[0], m.time.split('T')[0], messages[i - 1] && messages[i - 1].time.split('T')[0], messages[i - 1])
+                const isSelf = m.from_user_id === Number(userId)
 
+                //console.log(m.time, messages[i - 1] && m.time.split('T')[0] !== currentChatMessages[i - 1].time.split('T')[0], m.time.split('T')[0], messages[i - 1] && messages[i - 1].time.split('T')[0], messages[i - 1])
                 return <div
                     key={i}
                     /*ref={(el) => (divRefs.current[i] = el)}*/
@@ -507,7 +508,7 @@ export default function Index() {
                     }
 
                     <div className={m.from_user_id === user.id ? 'user_message' : 'companion_message'}>
-                    <div>{companionData.username}</div>
+                        {Array.isArray(companionData) && <div>{isSelf ? user.username : companionData.username}</div>}
                     <div>{m.text}</div>
                     {/*<div>{m.time.substring(11, 16)}</div>*/}
                         <div>{time}</div>
