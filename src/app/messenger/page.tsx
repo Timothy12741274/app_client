@@ -153,10 +153,18 @@ export default function Index() {
 
     const messageListRef = useRef(null)
 
-    const firstUnreadMessageId = currentChatMessages.find(m => {
+/*    const firstUnreadMessageId = currentChatMessages.find((m, i) => {
         // debugger
         return !m.read && m.from_user_id !== userId
-    })?.id
+    })?.id*/
+
+    let firstUnreadMessageId = -1
+
+    currentChatMessages.map((m, i) => {
+        if (!m.read && m.from_user_id !== userId && firstUnreadMessageId === -1) firstUnreadMessageId = i
+    })
+
+    console.log('firstUnreadMessageId', firstUnreadMessageId, 'currentChatMessages', currentChatMessages, 'refs', refs)
 
     const scrollToUnread = () => {
         setHasRefInitialized(true)
@@ -172,6 +180,7 @@ export default function Index() {
 
         if (firstUnreadMessageId && unreadMessagesHeight > 650) {
             refs[firstUnreadMessageId].current.scrollIntoView({ behavior: 'smooth' })
+            // refs.find(r => r)[firstUnreadMessageId].current.scrollIntoView({ behavior: 'smooth' })
         } else {
             // if (messageListRef.current) {
                 messageListRef.current.scrollTop = messageListRef.current.scrollHeight
@@ -480,7 +489,7 @@ export default function Index() {
                     /*ref={(el) => (divRefs.current[i] = el)}*/
                     ref={refs[i]}
                     >
-                    {firstUnreadMessageId === m.id && <div>Unread messages</div>}
+                    {firstUnreadMessageId === i && <div>Unread messages</div>}
                     {
                         (
                             (!currentChatMessages[i - 1])
