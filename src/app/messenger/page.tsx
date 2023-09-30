@@ -26,16 +26,7 @@ export default function Index() {
     // const getCurrentChatMessages = () => {
     //     return messages.filter(m => m.from_user_id === Number(get('user-id')) || m.to_user_id === Number(get('user-id')))
     // }
-    const currentChatMessages = useMemo(() => {
-        console.log('res', messages.filter(m => m.from_user_id === Number(get('user-id')) || m.to_user_id === Number(get('user-id'))))
-        console.log('messages in memo', messages)
-        return messages
-            .filter(m => m.from_user_id === Number(get('user-id')) || m.to_user_id === Number(get('user-id')))
-            .sort(compareMessagesByDate)
 
-    }, [messages])
-
-    console.log('currentChatMessages', currentChatMessages)
     const { push } = useRouter()
 
     const [text, setText] = useState('')
@@ -57,12 +48,24 @@ export default function Index() {
 
     const [companionData, setCompanionData] = useState({})
 
-    const [currentChatMessagesState, setCurrentChatMessagesState] = useState(currentChatMessages)
+    const [currentChatMessagesState, setCurrentChatMessagesState] = useState([])
 
     const [isUsersLoading, setIsUsersLoading] = useState(true)
     const [isMessagesLoading, setIsMessagesLoading] = useState(true)
 
+    const currentChatMessages = useMemo(() => {
+        console.log('res', messages.filter(m => m.from_user_id === Number(get('user-id')) || m.to_user_id === Number(get('user-id'))))
+        console.log('messages in memo', messages)
+        const filteredAndSortedMessages = messages
+            .filter(m => m.from_user_id === companionData.id || m.to_user_id === companionData.id)
+            .sort(compareMessagesByDate)
+        console.log('filteredAndSortedMessages', filteredAndSortedMessages)
+        return filteredAndSortedMessages
 
+    }, [messages, companionData])
+
+
+    console.log('currentChatMessages', currentChatMessages)
     console.log('leftNavState:', leftNavState)
 
     const ref = useRef(null)
@@ -284,7 +287,7 @@ export default function Index() {
                 .then(() => dispatch(setUsers(newUsers)))
 
         }
-
+        setCompanionData(u)
         push('/messenger?user-id=' + u.id)
     }
     
@@ -322,6 +325,11 @@ export default function Index() {
             document.addEventListener('mousemove', handleMouseMove)
             setIsMoreInSettingsShowed(true)
         }
+    }
+
+    const onRecentSearchUserClickHandler = (u) => {
+        setCompanionData(u)
+        push('/messenger?user-id=' + u.id)
     }
 
     console.log('leftNavState', leftNavState)
@@ -392,7 +400,7 @@ export default function Index() {
                                 user.found_user_from_search_ids?.map(id => {
                                     const u = users.find(u => u.id === id)
 
-                                    return <div onClick={() => push('/messenger?user-id=' + u.id)}>
+                                    return <div onClick={() => onRecentSearchUserClickHandler(u)}>
                                         <img className={'avatar'}
                                              src={u.avatar_photo_urls?.slice(-1)[0] ? baseURL + u.avatar_photo_urls.slice(-1)[0] : AVATAR}/>
 
