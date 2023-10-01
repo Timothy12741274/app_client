@@ -78,6 +78,7 @@ export default function Index() {
 
     useEffect(() => {
         if (!companionData.id && !users.find(u => u.id === Number(get('user-id')))) {
+            console.log('get(\'user-id\')', get('user-id'))
             inst.get('/users/get-user/' + get('user-id')).then(( res  => {
                 setCompanionData(res.data.user)
                 dispatch(addUsers(res.data.user))
@@ -164,7 +165,7 @@ export default function Index() {
     let firstUnreadMessageId = -1
 
     currentChatMessages.map((m, i) => {
-        if (!m.read && m.from_user_id !== userId && firstUnreadMessageId === -1) firstUnreadMessageId = i
+        if (!m.read && m.from_user_id !== Number(userId) && firstUnreadMessageId === -1) firstUnreadMessageId = i
     })
 
     console.log('firstUnreadMessageId', firstUnreadMessageId, 'currentChatMessages', currentChatMessages, 'refs', refs)
@@ -173,14 +174,15 @@ export default function Index() {
         setHasRefInitialized(true)
 
 
-        const unreadMessageIds = currentChatMessages.filter(m => !m.read).map(m => m.id)
+        const unreadMessageIds = currentChatMessages
+            .filter(m => !m.read && m.from_user_id !== Number(userId))
+            .map(m => m.id)
 
         const unreadMessagesHeight = refs.filter((r, i) => unreadMessageIds.includes(i)).reduce((acc, curr) => {
             return acc + curr.current.scrollHeight
         }, 0)
 
-        if (unreadMessagesHeight > 650)
-
+        // if (unreadMessagesHeight > 650)
         if (firstUnreadMessageId && unreadMessagesHeight > 650) {
             refs[firstUnreadMessageId].current.scrollIntoView({ behavior: 'smooth' })
             // refs.find(r => r)[firstUnreadMessageId].current.scrollIntoView({ behavior: 'smooth' })
@@ -507,7 +509,7 @@ export default function Index() {
                         ) && <div className={'message_data_label'}>{dataForUser}</div>
                     }
 
-                    <div className={m.from_user_id === user.id ? 'user_message' : 'companion_message'}>
+                    <div className={m.from_user_id === Number(userId) ? 'user_message' : 'companion_message'}>
                         {Array.isArray(companionData) && <div>{isSelf ? user.username : companionData.username}</div>}
                     <div>{m.text}</div>
                     {/*<div>{m.time.substring(11, 16)}</div>*/}
