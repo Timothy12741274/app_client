@@ -15,7 +15,6 @@ export default function Index() {
 
     const users = useSelector(state => state.userData.users)
 
-    console.log(users)
 
     // const companionData = users.find(u => u.id === Number(get('user-id')))
 
@@ -54,19 +53,17 @@ export default function Index() {
     const [isMessagesLoading, setIsMessagesLoading] = useState(true)
 
     const currentChatMessages = useMemo(() => {
-        console.log('res', messages.filter(m => m.from_user_id === Number(get('user-id')) || m.to_user_id === Number(get('user-id'))))
-        console.log('messages in memo', messages)
         const filteredAndSortedMessages = messages
-            .filter(m => m.from_user_id === companionData.id || m.to_user_id === companionData.id)
+            .filter(m =>
+                (m.from_user_id === companionData.id || m.to_user_id === companionData.id) &&
+                (m.from_user_id === Number(userId) || m.to_user_id === Number(userId))
+            )
             .sort(compareMessagesByDate)
-        console.log('filteredAndSortedMessages', filteredAndSortedMessages)
+        // debugger
         return filteredAndSortedMessages
 
     }, [messages, companionData])
 
-
-    console.log('currentChatMessages', currentChatMessages)
-    console.log('leftNavState:', leftNavState)
 
     const ref = useRef(null)
 
@@ -78,7 +75,6 @@ export default function Index() {
 
     useEffect(() => {
         if (!companionData.id && !users.find(u => u.id === Number(get('user-id')))) {
-            console.log('get(\'user-id\')', get('user-id'))
             inst.get('/users/get-user/' + get('user-id')).then(( res  => {
                 setCompanionData(res.data.user)
                 dispatch(addUsers(res.data.user))
@@ -124,8 +120,6 @@ export default function Index() {
         setText('')
     }
 
-    console.log('messages', messages)
-
     useEffect(() => { getMessages() }, [])
 
     useEffect(() => {
@@ -146,7 +140,7 @@ export default function Index() {
 
     const userIdsFromUserMessenger = messages.map(u => u.from_user_id === userId ? u.to_user_id : u.from_user_id)
     const usersFromUserMessenger = users.filter(u => userIdsFromUserMessenger.includes(u.id))
-    
+
     const onKeyDownHnd = (e) => {
       if (e.key === 'Enter') {
           sendMessageHnd()
@@ -167,8 +161,6 @@ export default function Index() {
     currentChatMessages.map((m, i) => {
         if (!m.read && m.from_user_id !== Number(userId) && firstUnreadMessageId === -1) firstUnreadMessageId = i
     })
-
-    console.log('firstUnreadMessageId', firstUnreadMessageId, 'currentChatMessages', currentChatMessages, 'refs', refs)
 
     const scrollToUnread = () => {
         setHasRefInitialized(true)
@@ -193,11 +185,24 @@ export default function Index() {
         }
     }
 
+    // console.log('messageListRef.current.scrollHeight', messageListRef.current.scrollHeight)
+
     useEffect(() => {
         if (!hasRefInitialized && messageListRef.current && refs[0] && refs[0].current) scrollToUnread()
     }, [messageListRef.current, refs])
 
+    useEffect(() => {
+        if (messageListRef.current) {
+            messageListRef.current.scrollTop = messageListRef.current.scrollHeight
+        }
+    }, [messageListRef.current && messageListRef.current.scrollHeight])
 
+    useEffect(() => {
+        if (messageListRef.current) {
+            messageListRef.current.addEventListener('scroll', () => {
+            })
+        }
+    }, [messageListRef.current])
 
     useEffect(() => {
         refs.map((elementRef, i) => {
@@ -270,7 +275,6 @@ export default function Index() {
     }
 
     const onFoundUserClickHandler = (u) => {
-        console.log(user)
         if (user.found_user_from_search_ids[0] !== u.id) {
             let newUsers = [...users]
 
@@ -290,6 +294,7 @@ export default function Index() {
 
         }
         setCompanionData(u)
+        setHasRefInitialized(false)
         push('/messenger?user-id=' + u.id)
     }
     
@@ -334,12 +339,6 @@ export default function Index() {
         push('/messenger?user-id=' + u.id)
     }
 
-    console.log('leftNavState', leftNavState)
-
-    console.log('usersFromUserMessenger', usersFromUserMessenger)
-    console.log('ids', userIdsFromUserMessenger)
-
-    console.log('users', users.find(u => u.id === Number(get('user-id'))))
 
     if (isMessageLoading || typeof companionData?.id === 'undefined') return <div><div>Loading...</div><div>{isMessageLoading && 'first'} {!companionData?.id && 'second'}</div></div>
 
@@ -436,7 +435,7 @@ export default function Index() {
                                 const unreadMessagesCount = userMessages.filter(m => !m.read).length
 
                                 return <div style={{background: "wheat"}}
-                                            onClick={() => push('/messenger?user-id=' + u.id)}>
+                                            onClick={() => onFoundUserClickHandler(u)}>
                                     <img className={'avatar'}
                                          src={baseURL + !!u && !!u.avatar_photo_urls ? u?.avatar_photo_urls[0] : AVATAR}/>
                                     <div>
@@ -494,7 +493,6 @@ export default function Index() {
 
                 const isSelf = m.from_user_id === Number(userId)
 
-                //console.log(m.time, messages[i - 1] && m.time.split('T')[0] !== currentChatMessages[i - 1].time.split('T')[0], m.time.split('T')[0], messages[i - 1] && messages[i - 1].time.split('T')[0], messages[i - 1])
                 return <div
                     key={i}
                     /*ref={(el) => (divRefs.current[i] = el)}*/
@@ -548,7 +546,6 @@ function compareDates(dateStr1, dateStr2) {
     const date1 = new Date(dateStr1);
     const date2 = new Date(dateStr2);
 
-    console.log(date1, date2, date1 > date2, date1 < date2)
     // Сравниваем даты
     if (date1 > date2) {
         return 1;

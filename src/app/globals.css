@@ -42,11 +42,23 @@ img {
     border-color:  transparent transparent gray transparent;
 }
 
+.companion_message::before {
+    content: '';
+    position: absolute;
+    top: 65%;
+    /*right: -20px; !* Измените значение left, чтобы настроить положение треугольника *!*/
+    left: -11px;
+    border-width: 14px;
+    border-style: solid;
+    border-color:  transparent transparent gray transparent;
+}
+
 .user_message, .companion_message {
     background-color: gray;
     border-radius: 15px;
     width: 200px;
     padding: 10px;
+    margin: 15px;
 }
 
 .message_data_label {
@@ -66,7 +78,7 @@ img {
 }
 
 .companion_message {
-
+    position: relative;
 }
 
 .aligned_row {
