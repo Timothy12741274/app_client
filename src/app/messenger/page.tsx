@@ -15,16 +15,9 @@ export default function Index() {
 
     const users = useSelector(state => state.userData.users)
 
-
-    // const companionData = users.find(u => u.id === Number(get('user-id')))
-
     const user = users.find(u => u.id === Number(userId))
 
     const { messages, isMessageLoading } = useSelector(state => state.messageData)
-
-    // const getCurrentChatMessages = () => {
-    //     return messages.filter(m => m.from_user_id === Number(get('user-id')) || m.to_user_id === Number(get('user-id')))
-    // }
 
     const { push } = useRouter()
 
@@ -48,9 +41,6 @@ export default function Index() {
     const [companionData, setCompanionData] = useState({})
 
     const [currentChatMessagesState, setCurrentChatMessagesState] = useState([])
-
-    const [isUsersLoading, setIsUsersLoading] = useState(true)
-    const [isMessagesLoading, setIsMessagesLoading] = useState(true)
 
     const currentChatMessages = useMemo(() => {
         const filteredAndSortedMessages = messages
@@ -107,15 +97,8 @@ export default function Index() {
         const time = getDataString()
         let newMessage = { time, text, from_user_id: user.id, to_user_id: companionData.id, isRead: companionData.is_online }
 
-        // const newMessage = { time, text, fromUserId: user.id, toUserId: companionData.id }
         inst.post('/messages', newMessage)
-            .then(res => {
-                // const timeObj = new Date(time)
-                // newMessage.time = timeObj.toISOString()
-
-                console.log(res.data)
-                dispatch(addMessage(res.data))
-            })
+            .then(res => dispatch(addMessage(res.data)))
 
         setText('')
     }
@@ -151,11 +134,6 @@ export default function Index() {
 
     const messageListRef = useRef(null)
 
-/*    const firstUnreadMessageId = currentChatMessages.find((m, i) => {
-        // debugger
-        return !m.read && m.from_user_id !== userId
-    })?.id*/
-
     let firstUnreadMessageId = -1
 
     currentChatMessages.map((m, i) => {
@@ -174,18 +152,12 @@ export default function Index() {
             return acc + curr.current.scrollHeight
         }, 0)
 
-        // if (unreadMessagesHeight > 650)
         if (firstUnreadMessageId && unreadMessagesHeight > 650) {
             refs[firstUnreadMessageId].current.scrollIntoView({ behavior: 'smooth' })
-            // refs.find(r => r)[firstUnreadMessageId].current.scrollIntoView({ behavior: 'smooth' })
         } else {
-            // if (messageListRef.current) {
                 messageListRef.current.scrollTop = messageListRef.current.scrollHeight
-            // }
         }
     }
-
-    // console.log('messageListRef.current.scrollHeight', messageListRef.current.scrollHeight)
 
     useEffect(() => {
         if (!hasRefInitialized && messageListRef.current && refs[0] && refs[0].current) scrollToUnread()
@@ -193,16 +165,11 @@ export default function Index() {
 
     useEffect(() => {
         if (messageListRef.current) {
-            messageListRef.current.scrollTop = messageListRef.current.scrollHeight
+            setTimeout(() => {
+                messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
+            }, 0);
         }
-    }, [messageListRef.current && messageListRef.current.scrollHeight])
-
-    useEffect(() => {
-        if (messageListRef.current) {
-            messageListRef.current.addEventListener('scroll', () => {
-            })
-        }
-    }, [messageListRef.current])
+    }, [messageListRef.current && messageListRef.current.scrollHeight, messages])
 
     useEffect(() => {
         refs.map((elementRef, i) => {
