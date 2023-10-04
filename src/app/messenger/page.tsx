@@ -7,11 +7,13 @@ import {getDataString} from "@/fn/getDataString";
 import {inst, baseURL, AVATAR, userId} from "@/const/const";
 import {useDispatch, useSelector} from "react-redux";
 import {addMessage, addMessages, setIsMessageLoading, setMessages, setReadMessage} from "@/store/slices/messageSlice";
-import {addUsers, setUsers} from "@/store/slices/userSlice";
+import {addUser, setUsers} from "@/store/slices/userSlice";
 
 export default function Index() {
     const dispatch = useDispatch()
     const { get } = useSearchParams()
+
+    if (!userId) return <div>Loading...</div>
 
     const users = useSelector(state => state.userData.users)
 
@@ -64,17 +66,84 @@ export default function Index() {
     }, [currentChatMessages])
 
     useEffect(() => {
-        if (!companionData.id && !users.find(u => u.id === Number(get('user-id')))) {
-            inst.get('/users/get-user/' + get('user-id')).then(( res  => {
-                setCompanionData(res.data.user)
-                dispatch(addUsers(res.data.user))
-            }))
-        }
+            const companionFromState = users.find(u => u.id === Number(get('user-id')))
+        console.log(companionData)
+            if (!companionFromState) {
+                inst.get('/users/get-user/' + get('user-id'))
+                    .then(res => {
+                        setCompanionData(res.data.user)
+                        dispatch(addUser(res.data.user))
+                    })
+
+                // inst.get('/users/get-user/' + get('user-id')).then(( res  => {
+                //     console.log('user', res.data.user, res.data)
+                //     setCompanionData(res.data.user)
+                //     dispatch(addUsers(res.data.user))
+                // }))
+            } else if (companionFromState && companionData.id !== companionFromState.id) {
+                setCompanionData(companionFromState)
+            }
     }, [users])
 
     useEffect(() => {
         getAndSetAllUsers()
+        getMessages()
+
+        // if (users.length === 0 || messages.length === 0) {
+            inst.get('/users/get-users/' + userId)
+                .then(({data}) => {
+                    // setIsUsersLoading(false)
+                    dispatch(setUsers(data))
+                })
+
+            inst.get('/messages/get-user-messages/' + userId)
+                .then(({data}) => {
+                    // setIsMessagesLoading(false)
+                    dispatch(addMessages(data))
+                })
+        // }
+
+        inst.post(`/users/${userId}/update-status`, { isOnline: true })
+            .then(() => {
+                const updatedUsers = users.map(u => u.id === Number(userId) ? {...u, is_online: true} : u)
+
+                dispatch(setUsers(updatedUsers))
+            })
+
+        window.addEventListener('beforeunload', () => {
+            inst.post(`/users/${userId}/update-status`, { isOnline: false })
+        })
     }, [])
+
+    useEffect(() => {
+        const intervalId = setInterval(() => {
+            if (companionData.id) {
+                inst.get(`/users/${companionData.id}/get-user-status`)
+                    .then(res => {
+                        if (res.data.isOnline !== companionData.is_online) {
+                            const updatedUsers = users.map(u => u.id === companionData.id ? {...u, is_online: res.data.isOnline} : u)
+                            setCompanionData(u => ({...u, is_online: res.data.isOnline}))
+                            dispatch(setUsers(updatedUsers))
+                        }
+                    })
+            }
+            console.log('here', messages, messages.length > 0)
+            if (messages && messages.length > 0) {
+                console.log('worked')
+                const maxMessageId = messages.map(m => m.id).reduce((acc, curr) => acc > curr ? acc : curr)
+                console.log('mess max id', Math.max(messages.map(m => m.id)), 'maxMessageId', maxMessageId)
+                inst.get(`/messages/added-messages`, { params: {'max_message_id': maxMessageId}})
+                    .then(res => {
+                        if (res.data.length > 0) dispatch(addMessages(res.data))
+                    })
+            }
+
+        }, 5000)
+
+        return () => {
+            clearInterval(intervalId)
+        }
+    }, [companionData, messages])
 
     const getAndSetAllUsers = async () => {
         const { data: { rows: users } } = await inst.get('/users?count=5')
@@ -95,31 +164,13 @@ export default function Index() {
 
     const sendMessageHnd = () => {
         const time = getDataString()
-        let newMessage = { time, text, from_user_id: user.id, to_user_id: companionData.id, isRead: companionData.is_online }
+        let newMessage = { time, text, from_user_id: Number(userId), to_user_id: companionData.id, isRead: companionData.is_online }
 
         inst.post('/messages', newMessage)
             .then(res => dispatch(addMessage(res.data)))
 
         setText('')
     }
-
-    useEffect(() => { getMessages() }, [])
-
-    useEffect(() => {
-         if (users.length === 0 || messages.length === 0) {
-            inst.get('/users/get-users/' + userId)
-                .then(({data}) => {
-                    setIsUsersLoading(false)
-                    dispatch(setUsers(data))
-                })
-
-            inst.get('/messages/get-user-messages/' + userId)
-                .then(({data}) => {
-                    setIsMessagesLoading(false)
-                    dispatch(addMessages(data))
-                })
-        }
-    }, [])
 
     const userIdsFromUserMessenger = messages.map(u => u.from_user_id === userId ? u.to_user_id : u.from_user_id)
     const usersFromUserMessenger = users.filter(u => userIdsFromUserMessenger.includes(u.id))
@@ -169,7 +220,7 @@ export default function Index() {
                 messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
             }, 0);
         }
-    }, [messageListRef.current && messageListRef.current.scrollHeight, messages])
+    }, [messageListRef.current && messageListRef.current.scrollHeight, currentChatMessagesState])
 
     useEffect(() => {
         refs.map((elementRef, i) => {
@@ -200,7 +251,7 @@ export default function Index() {
                 // Элемент появился на экране
                 // Вы можете выполнить здесь нужные действия
                 //console.log('Элемент появился на экране');
-                if (!currentChatMessages[i].read && currentChatMessages[i].from_user_id !== user.id) {
+                if (!currentChatMessages[i].read && currentChatMessages[i].from_user_id !== Number(userId)) {
                     inst.put('/messages/' + i).then(() => dispatch(setReadMessage(i)))
                 }
             }

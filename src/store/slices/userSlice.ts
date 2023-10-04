@@ -21,12 +21,12 @@ const counterSlice = createSlice({
         setUsers: (state, action) => {
             state.users = action.payload
         },
-        addUsers: (state, action) => {
+        addUser: (state, action) => {
             state.users = [...state.users, action.payload]
         }
     },
 });
 
-export const { setUsers, addUsers } = counterSlice.actions;
+export const { setUsers, addUser } = counterSlice.actions;
 
 export default counterSlice.reducer;
