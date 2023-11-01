@@ -14,7 +14,7 @@ export const AuthWrapper = ({ children}) => {
 
     const { users, messages } = useSelector(state => state.userData)
 
-    console.log(users)
+    // console.log(users)
 
     // const [isLoading, setIsLoading] = useState(true)
     // const [isUsersLoading, setIsUsersLoading] = useState(true)

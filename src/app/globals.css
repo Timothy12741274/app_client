@@ -59,6 +59,7 @@ img {
     width: 200px;
     padding: 10px;
     margin: 15px;
+    position: relative;
 }
 
 .message_data_label {
@@ -69,7 +70,7 @@ img {
     display: flex;
     justify-content: center;
     margin: 10px 0;
-
+    position: relative;
 }
 
 .chat_panel {
@@ -101,4 +102,17 @@ img {
 
 .partner_message {
 
+}
+
+.modal {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px;
+    height: 200px;
+    background-color: white;
+    padding: 20px;
+    border: 1px solid black;
+    box-shadow: 10px 10px 5px #888888;
 }
