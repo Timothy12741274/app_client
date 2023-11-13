@@ -16,7 +16,8 @@ export default function Index() {
       axios.post('http://localhost:5000/auth', {email, password}, {withCredentials: true})
           .then(res => {
               cookie.set('userId', res.data.id, {expires: 1000 * 60 * 60 * 24 * 5})
-              push('/')
+
+              push('/messenger')
           })
     }
 

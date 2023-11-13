@@ -10,7 +10,9 @@ const counterSlice = createSlice({
     initialState,
     reducers: {
         addMessage: (state, action) => {
-            state.messages = [...state.messages, action.payload]
+            if (!state.messages.includes(action.payload.id)) {
+                state.messages = [...state.messages, action.payload]
+            }
         },
         addMessages: (state, action) => {
             state.messages = [...state.messages, ...action.payload]

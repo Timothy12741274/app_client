@@ -1,7 +1,10 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState: initialStateType = {
-    users: []
+    users: [],
+    companionData: {},
+    hasRefInitialized: false,
+    userId: 0
 };
 
 type initialStateType = {
@@ -20,6 +23,12 @@ const counterSlice = createSlice({
     reducers: {
         setUsers: (state, action) => {
             state.users = action.payload
+        },
+        setCompanionData: (state, action) => {
+            state.companionData = action.payload
+        },
+        setHasRefInitialized: (state, action) => {
+            state.hasRefInitialized = action.payload
         },
         addUser: (state, action) => {
             state.users = [...state.users, action.payload]
@@ -42,10 +51,14 @@ const counterSlice = createSlice({
             }
 
             // state.users = [...state.users, action.payload]
+        },
+        setUserId: (state, action) => {
+            console.log(action.payload, 'payload')
+            state.userId = action.payload
         }
     },
 });
 
-export const { setUsers, addUser, changeUsersStatus } = counterSlice.actions;
+export const { setUsers, addUser, changeUsersStatus, setCompanionData, setHasRefInitialized, setUserId } = counterSlice.actions;
 
 export default counterSlice.reducer;

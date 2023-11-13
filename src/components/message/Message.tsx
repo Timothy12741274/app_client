@@ -3,7 +3,7 @@ import {userId} from "@/const/const";
 import {getTimeFromDate} from "@/fn/getTimeFromDate";
 
 
-export const Message = ({m, i, refs, firstUnreadMessageId, currentChatMessages, companionData, user, usernameOrGroupName}) => {
+export const Message = ({m, i, messageRef, firstUnreadMessageId, currentChatMessages, companionData, user, usernameOrGroupName}) => {
 
     const [isMoreShowed, setIsMoreShowed] = useState(false)
 
@@ -30,7 +30,7 @@ export const Message = ({m, i, refs, firstUnreadMessageId, currentChatMessages, 
     return <div
         key={i}
         /*ref={(el) => (divRefs.current[i] = el)}*/
-        ref={refs[i]}
+        ref={messageRef}
     >
         {firstUnreadMessageId === i && <div>Unread messages</div>}
         {
@@ -40,18 +40,18 @@ export const Message = ({m, i, refs, firstUnreadMessageId, currentChatMessages, 
                 (currentChatMessages[i - 1] && m.time.split('T')[0] !== currentChatMessages[i - 1].time.split('T')[0])
             ) && <div className={'message_data_label'}>{dataForUser}</div>
         }
-        <div style={{position: "absolute"}}>
+        {isMoreShowed && <div style={{position: "absolute"}}>
             <div>Data about message</div>
             <div>Answer</div>
             <div>React</div>
             <div>Resend</div>
             <div>In favorites</div>
             <div>Answer</div>
-        </div>
+        </div>}
         <div className={m.from_user_id === Number(userId) ? 'user_message' : 'companion_message'}>
             {Array.isArray(companionData) && <div>{isSelf ? user.username : usernameOrGroupName}</div>}
             <div>{m.text}</div>
-            <div>{m.time.substring(11, 16)}</div>
+            {/*<div>{m.time.substring(11, 16)}</div>*/}
             <div>{time}</div>
             <div>{m.read ? 'Read' : 'Unread'}</div>
             <div
