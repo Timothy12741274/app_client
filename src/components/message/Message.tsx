@@ -37,7 +37,7 @@ export const Message = ({m, i, messageRef, firstUnreadMessageId, currentChatMess
             (
                 (currentChatMessages && !currentChatMessages[i - 1])
                 ||
-                (currentChatMessages[i - 1] && m.time.split('T')[0] !== currentChatMessages[i - 1].time.split('T')[0])
+                (currentChatMessages && currentChatMessages[i - 1] && m.time.split('T')[0] !== currentChatMessages[i - 1].time.split('T')[0])
             ) && <div className={'message_data_label'}>{dataForUser}</div>
         }
         {isMoreShowed && <div style={{position: "absolute"}}>

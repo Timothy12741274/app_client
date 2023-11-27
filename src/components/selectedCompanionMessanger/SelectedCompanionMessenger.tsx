@@ -14,9 +14,16 @@ import {Message} from "@/components/message/Message";
 const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUserMessenger, users, groupShowedWritingUsers}) => {
     const { companionData, hasRefInitialized } = useSelector(state => state.userData)
 
+    const { get } = useSearchParams()
+
+    const userIdFromUrl = get('user-id');
+    const groupIdFromUrl = get('group-id');
+
+    // const companion = isUserCurrentChat ? users.find(u => u.id === Number(userIdFromUrl)) : groups.find(g => g.id === Number(groupIdFromUrl))
+
     const isMessageLoading = useSelector(state => state.messageData.isMessageLoading)
 
-    const { get } = useSearchParams()
+
 
     const dispatch = useDispatch()
 
@@ -71,6 +78,8 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
 
     const [refs, setRefs] = useState([])
 
+    // const [companionStatus, setCompanionStatus] = useState()
+
     let firstUnreadMessageId = -1
 
 
@@ -114,8 +123,8 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
         isLastSeenDateOfCurrDay = new Date().toISOString().split('T')[0] === lastOnlineDateObj.toISOString().split('T')[0]
     }
 
-
-    let currentChatIndex
+    const [currentChatIndex, setCurrentChatIndex] = useState(-1)
+    // let currentChatIndex
 
     // const handleIntersection = (entries, i) => {
     //     entries.forEach((entry) => {
@@ -177,13 +186,16 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
 
     }
 
-    const onEnterMessageChange = v => {
-        inst.post('/users/' + userId + '/update-writing-status', { isWriting: true})
-        clearInterval(timer)
+    const [isWriting, setIsWriting] = useState(false)
 
-        timer = setTimeout(() => {
-            inst.post('/users/' + userId + '/update-writing-status', { isWriting: false})
-        }, 2000)
+    const onEnterMessageChange = v => { 
+        // inst.post('/users/' + userId + '/update-writing-status', { isWriting: true})
+        // clearInterval(timer)
+        //
+        // timer = setTimeout(() => {
+        //     inst.post('/users/' + userId + '/update-writing-status', { isWriting: false})
+        // }, 2000)
+        if (!isWriting) setIsWriting(true)
         setText(v)
     }
 
@@ -205,7 +217,9 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
     }
 
     useEffect(() => {
-        if (chats && currentChatMessagesState && currentChatMessagesState[0]) currentChatIndex = chats.indexOf(chats.find(c => c[0].id === currentChatMessagesState[0].id))
+        // console.log(chats.indexOf(chats.find(c => c[0].id === currentChatMessagesState[0].id)), 'ooooooo')
+        if (chats && currentChatMessagesState && currentChatMessagesState[0]) setCurrentChatIndex(chats.indexOf(chats.find(c => c[0].id === currentChatMessagesState[0].id)))
+        // if (chats && currentChatMessagesState && currentChatMessagesState[0]) currentChatIndex = chats.indexOf(chats.find(c => c[0].id === currentChatMessagesState[0].id))
     }, [chats, currentChatMessagesState])
 
     useEffect(() => {
@@ -233,12 +247,14 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
                     })
             }
 
+            inst.post('/users/' + userId + '/update-writing-status', { isWriting })
+
         }, 5000)
 
         return () => {
             clearInterval(intervalId)
         }
-    }, [companionData, messages, isUserCurrentChat])
+    }, [companionData, messages, isUserCurrentChat, isWriting])
 
     useEffect(() => {
         // console.log('changed currChatMess')
@@ -327,6 +343,21 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
         }
     }
 
+    // const status =                     companionData.is_online ?
+    //     companionData.is_writing ?
+    //         'Typing...' :
+    //         'Online'
+    //     :
+    //     companionData.last_online_date ?
+    //         'Last seen at ' + isLastSeenDateOfCurrDay ? lastSeenCompanionTime : lastOnlineDateFormatted
+    //         :
+    //         'Offline'
+    //
+    // console.log(status, 'status')
+
+     console.log(groupShowedWritingUsers, currentChatIndex, 'pppppp')
+    // console.log(groupShowedWritingUsers.length > 0, groupShowedWritingUsers[currentChatIndex], groupShowedWritingUsers[currentChatIndex], `${groupShowedWritingUsers[currentChatIndex]} is writing...`, 'LLLLLLLL')
+
     if (isMessageLoading || typeof companionData?.id === 'undefined' || (!refs && currentChatMessages && currentChatMessages.length > 0)) return <div><div>Loading...</div><div>{isMessageLoading && 'first'} {!companionData?.id && 'second'}</div></div>
 
     return (
@@ -358,9 +389,14 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
                 }
             </span>}
                     {
-                        !isUserCurrentChat && <span>
-                {groupShowedWritingUsers.length > 0 && groupShowedWritingUsers[currentChatIndex] && `${groupShowedWritingUsers[currentChatIndex].username} is writing...`}
-                </span>
+                        !isUserCurrentChat &&
+                        <span>
+                            {
+                                groupShowedWritingUsers.length > 0 &&
+                                groupShowedWritingUsers[currentChatIndex] &&
+                                `${groupShowedWritingUsers[currentChatIndex].username} is writing...`
+                            }
+                        </span>
                     }
                 </div>
                 <div ref={messageListRef} style={{background: 'green', width: '620px', overflow: "scroll", height: '650px'}}>

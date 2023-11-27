@@ -51,6 +51,11 @@ const counterSlice = createSlice({
             }
 
             // state.users = [...state.users, action.payload]
+            const updatedCompanionData = action.payload.find(u => u.id === state.companionData.id)
+
+            if (updatedCompanionData) {
+                state.companionData = updatedCompanionData
+            }
         },
         setUserId: (state, action) => {
             console.log(action.payload, 'payload')

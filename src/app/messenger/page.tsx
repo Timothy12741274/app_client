@@ -29,6 +29,7 @@ export default function Index() {
     const { users, companionData, userId } = useSelector(state => state.userData)
     const groups = useSelector(state => state.groupData.groups)
 
+    console.log('usersIn', users)
     const user = users.find(u => u.id === Number(userId))
 
     const { messages, isMessageLoading } = useSelector(state => state.messageData)
@@ -76,6 +77,9 @@ export default function Index() {
     const [writingUserGroups, setWritingUserGroups] = useState([])
 
     const [groupShowedWritingUsers, setGroupShowedWritingUsers] = useState([])
+
+    const userIdFromUrl = get('user-id');
+    const groupIdFromUrl = get('group-id');
 
 
 
@@ -222,15 +226,17 @@ export default function Index() {
 
 
         const intervalId = setInterval(() => {
+            console.log('worked2')
             inst.get('/users/get-user-statuses')
                 .then(res => {
                     if (res.data.length > 0) {
                         // const updatedUsers = users.map(u => res.data.map(u => u.id).includes(u.id) ? {...u, is_writing: !u.is_writing} : u)
                         // dispatch(setUsers(updatedUsers))
+                        console.log('worked', res.data)
                         dispatch(changeUsersStatus(res.data))
                     }
                 })
-        }, 1000)
+        }, 10000)
         // console.log('userId setting ', cookie.get('userId'))
         if (!userId) dispatch(setUserId(Number(cookie.get('userId'))))
         return () => {
@@ -248,10 +254,16 @@ export default function Index() {
                     dispatch(setIsMessageLoading(false))
                 })
         }
-        if (!userId) {
-            window.addEventListener('beforeunload', () => {
-                inst.post(`/users/${userId}/update-status`, {isOnline: false, lastOnlineDate: getDataString()})
-            })
+        const beforeUnloadHandler = () => {
+            inst.post(`/users/${userId}/update-status`, {isOnline: false, lastOnlineDate: getDataString(), userId})
+        }
+        console.log(userId, 'userId')
+        // if (!userId) {
+            window.addEventListener('beforeunload', beforeUnloadHandler)
+        // }
+
+        return () => {
+            window.removeEventListener('beforeunload', beforeUnloadHandler)
         }
 
     }, [userId])
@@ -408,26 +420,48 @@ export default function Index() {
     }, [users])
 
     useEffect(() => {
+        if (!groupIdFromUrl) return () => {}
         const intervalId = setInterval(() => {
             let writingUserGroupsCopy = [...writingUserGroups]
             let groupShowedWritingUsersCopy = [...groupShowedWritingUsers]
             for (let i = 0; i < chats.length; i++) {
-                let writingGroupUsers = writingUserGroupsCopy[i]
-                let writingUser = groupShowedWritingUsersCopy[i]
+                // const writingGroupUsers = writingUserGroupsCopy[i]
+
+                const currentChatMessages = chats.find(c => c[0]?.group_id === Number(groupIdFromUrl))
+                const currentChatLastMessage = currentChatMessages.slice(-1)[0]
+                let writingGroupUsers = writingUsers.filter(u =>
+                    (currentChatLastMessage.to_user_ids.includes(u.id) || currentChatLastMessage.from_user_id === u.id)
+                    && u.is_writing
+                    && u.id !== Number(userId)
+                )
+                groupShowedWritingUsersCopy[i] = null
+                writingUserGroupsCopy[i] = []
+                let newWritingUser
+                if (writingUsers.length !== 0) {
+                    //debugger
+                }
                 if (!writingGroupUsers) break
                 else if (writingGroupUsers.length < 2) {
-                    // if (writingGroupUsers.length === 1) setWritingUser(writingGroupUsers[0])
-                    if (writingGroupUsers.length === 1) writingUser = writingGroupUsers[0]
+                    if (writingGroupUsers.length === 1) {
+                        newWritingUser = writingGroupUsers[0]
+                        groupShowedWritingUsersCopy[i] = newWritingUser
+                    }
 
-                    // setWritingGroupUsers(writingUsers.find(u => currentChatMessages.slice(-1)[0].to_user_ids.includes(u.id) && u.is_writing))
-                    writingGroupUsers = writingUsers.find(u => currentChatMessages.slice(-1)[0].to_user_ids.includes(u.id) && u.is_writing)
+
+
+                    // newWritingGroupUsers = writingUsers.filter(u =>
+                    //     (currentChatLastMessage.to_user_ids.includes(u.id) || currentChatLastMessage.from_user_id === u.id)
+                    //     && u.is_writing
+                    // )
+                    writingUserGroupsCopy[i] = writingGroupUsers
 
                 } else {
-                    const newWritingGroupUsers = writingGroupUsers.filter(u => u.id !== writingUser.id)
-                    const randomIndex = Math.floor(Math.random() * newWritingGroupUsers.length)
+                    // const newWritingGroupUsers = writingGroupUsers.filter(u => u.id !== writingUser.id)
+                    const randomIndex = Math.floor(Math.random() * writingGroupUsers.length)
 
-                    writingUser = writingGroupUsers[randomIndex]
-                    writingGroupUsers = newWritingGroupUsers
+                    newWritingUser = writingGroupUsers[randomIndex]
+                    writingUserGroupsCopy[i] = writingGroupUsers
+                    groupShowedWritingUsersCopy[i] = newWritingUser
                 }
             }
             setWritingUserGroups(writingUserGroupsCopy)
@@ -437,14 +471,14 @@ export default function Index() {
         return () => {
             clearInterval(intervalId)
         }
-    }, [])
+    }, [chats, writingUserGroups,groupShowedWritingUsers, groupIdFromUrl, writingUsers])
 
     useEffect(() => {
         if (groupShowedWritingUsers.length === 0 || writingUserGroups.length === 0) {
             setGroupShowedWritingUsers(chats.map(c => null))
             setWritingUserGroups(chats.map(c => []))
         }
-    }, [])
+    }, [chats])
 
 
 
@@ -579,8 +613,7 @@ export default function Index() {
 
 
 
-    const userIdFromUrl = get('user-id');
-    const groupIdFromUrl = get('group-id');
+
 
     const companionId = useMemo(() => userIdFromUrl || groupIdFromUrl, [userIdFromUrl, groupIdFromUrl])
 
@@ -606,6 +639,8 @@ export default function Index() {
     // console.log(messages.filter(m => m.id === 79).length, chats[0]?.length)
     console.log(users, groups, messages)
 
+    console.log(groupShowedWritingUsers, writingUserGroups, chats, writingUsers, 'yyy')
+
     if (!user) return <div>Loading</div>
 
 
@@ -630,7 +665,7 @@ export default function Index() {
                         {
                             usersFromSearch.map(u => <div
                                 style={{display: "flex"}}
-                                onClick={() => onFoundUserClickHandler(u)}
+                                // onClick={() => onFoundUserClickHandler(u)}
                             >
                                 <input
                                     type={'checkbox'}
@@ -834,6 +869,7 @@ export default function Index() {
                                 chats={chats}
                                 onFoundUserClickHandler={onFoundUserClickHandler}
                                 writingUser={groupShowedWritingUsers[i]}
+                                groupIdFromUrl={groupIdFromUrl}
                                 />
                             )
                         }
