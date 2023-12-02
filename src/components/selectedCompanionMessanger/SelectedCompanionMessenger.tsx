@@ -3,15 +3,16 @@ import {AVATAR, baseURL, inst, userId} from "@/const/const";
 // import {Message} from "@/components/Message";
 import {addGroup, setGroups} from "@/store/slices/groupSlice";
 import {getDataString} from "@/fn/getDataString";
-import {addMessage, addMessages, setReadMessage} from "@/store/slices/messageSlice";
+import {addMessage, addMessages, setMessages, setReadMessage} from "@/store/slices/messageSlice";
 import {getTimeFromDate} from "@/fn/getTimeFromDate";
 import {addUser, setCompanionData, setHasRefInitialized, setUsers} from "@/store/slices/userSlice";
 import {useSearchParams} from "next/navigation";
 import {useDispatch} from "react-redux";
 import {useSelector} from "@/store/hooks/typedUseSelector";
 import {Message} from "@/components/message/Message";
+import {DataAboutMessage} from "@/components/dataAboutMessage/DataAboutMessage";
 
-const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUserMessenger, users, groupShowedWritingUsers}) => {
+const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUserMessenger, users, groupShowedWritingUsers, /*setSelectedInfoMessage*/}) => {
     const { companionData, hasRefInitialized } = useSelector(state => state.userData)
 
     const { get } = useSearchParams()
@@ -45,6 +46,10 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
     const avatar = companionData?.avatar_photo_urls?.slice(-1)[0] ?? companionData?.avatar_urls?.slice(-1)[0]
 
     const [currentCompanionId, setCurrentCompanionId] = useState(0)
+
+    const [selectedInfoMessage, setSelectedInfoMessage] = useState({})
+
+    const inputRef = useRef(null)
 
     const isUserCurrentChat = useMemo(() => !!get('user-id'), [!!get('user-id')])
 
@@ -151,9 +156,12 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
         const time = getDataString()
         let newMessage = { time, text, from_user_id: Number(userId), isRead: companionData.is_online }
 
+        if (messageToAnswerId) newMessage.messageToAnswerId = messageToAnswerId
+
+
         if (isUserCurrentChat) newMessage.to_user_id = companionData.id
         else {
-            newMessage.to_user_ids = companionData.user_ids
+            newMessage.to_user_ids = companionData.user_ids.filter(id => id !== Number(userId))
             newMessage.group_id = companionData.group_id
         }
 
@@ -188,6 +196,31 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
 
     const [isWriting, setIsWriting] = useState(false)
 
+    const [isAnswerMode, setIsAnswerMode] = useState(false)
+
+    const [messageToAnswerId, setMessageToAnswerId] = useState(0)
+
+    const [selectedMessages, setSelectedMessages] = useState([])
+
+    const [isSelectMode, setIsSelectMode] = useState(false)
+
+    const [isDeleteMode, setIsDeleteMode] = useState(false)
+    const deleteModalRef = useRef(null)
+
+    const [isUserChoiceModalOpened, setIsUserChoiceModalOpened] = useState(false)
+
+    const [foundUsersFromUserSearch, setFoundUsersFromUserSearch] = useState([])
+
+    const [selectedUsersToResendMessages, setSelectedUsersToResendMessages] = useState([])
+
+    const [selectedMessage, setSelectedMessage] = useState({})
+
+    const messageToAnswer = useMemo(() => {
+        return currentChatMessagesState.find(m => m.id === messageToAnswerId)
+    }, [currentChatMessagesState, messageToAnswerId])
+
+    const messageToAnswerOfMessageInInfoMode = messages.find(m => m.message_to_answer_id === selectedInfoMessage.message_to_answer_id)
+
     const onEnterMessageChange = v => { 
         // inst.post('/users/' + userId + '/update-writing-status', { isWriting: true})
         // clearInterval(timer)
@@ -215,6 +248,60 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
             setUsersFromNewGroupMemberSearch(foundUsers)
         }
     }
+
+    const onSelectMessage = (e, m) => {
+        setSelectedMessages(s => e.target.checked ? [...s, m] : s.filter(fm => fm.id !== m.id))
+    }
+
+    const onSearchInputChange = (v) => {
+        if (v.length === 0) {
+            setFoundUsersFromUserSearch(
+                chats.map(([m, ...rest]) => {
+                    const uId = m.from_user_id === Number(userId) ? m.to_user_id : m.from_user_id
+
+                    return m.group_id ? groups.find(g => g.id === m.group_id) : users.find(u => u.id === uId)
+                })
+            )
+        }
+        else if (v.length < 4) {
+            setFoundUsersFromUserSearch(s => s.filter(item => {
+                    const name = item.username ?? item.name
+
+                    return name.toLowerCase().includes(v.toLowerCase())
+                }
+            ))
+        } else {
+            inst.get(`/users/find?t=${v}`)
+                .then(({ data: { users } }) => {
+                    setFoundUsersFromUserSearch(users)
+                })
+        }
+    }
+
+    const onOpenUserChoiceModal = () => {
+        setIsUserChoiceModalOpened(true)
+        setFoundUsersFromUserSearch(
+            chats.map(([m, ...rest]) => {
+                const uId = m.from_user_id === Number(userId) ? m.to_user_id : m.from_user_id
+
+                return m.group_id ? groups.find(g => g.id === m.group_id) : users.find(u => u.id === uId)
+            })
+        )
+    }
+
+    const onSend = () => {
+      inst.post('/messages/resend', { messages: selectedMessages, items: selectedUsersToResendMessages, time: getDataString() })
+    }
+
+    const onDeleteClick = (v) => {
+        setIsDeleteMode(false)
+          inst.post('/messages/delete', {messages: [selectedMessage], fromEveryone: v === '1'})
+              .then(() => {
+                  dispatch(setMessages(messages.map(m => m.id === selectedMessage.id ? v === '1' ? {...m, is_deleted: true} : {...m, is_deleted_from_me: true} : m)))
+              })
+    }
+
+
 
     useEffect(() => {
         // console.log(chats.indexOf(chats.find(c => c[0].id === currentChatMessagesState[0].id)), 'ooooooo')
@@ -343,6 +430,12 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
         }
     }
 
+    const setIsAnswerModeCallback = (m) => {
+        inputRef.current.focus()
+        setMessageToAnswerId(m.id)
+
+    }
+
     // const status =                     companionData.is_online ?
     //     companionData.is_writing ?
     //         'Typing...' :
@@ -361,7 +454,48 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
     if (isMessageLoading || typeof companionData?.id === 'undefined' || (!refs && currentChatMessages && currentChatMessages.length > 0)) return <div><div>Loading...</div><div>{isMessageLoading && 'first'} {!companionData?.id && 'second'}</div></div>
 
     return (
-        <div>
+        <div style={{"display": "flex"}}>
+            {
+                isDeleteMode && <div style={{"position": "absolute", "left": "40%", "top": "20%", "width": "20%", "height": "60%"}} ref={deleteModalRef}>
+                    <div>Delete messages?</div>
+                    <div onClick={() => onDeleteClick('1')}>Delete for everyone</div>
+                    <div onClick={() => onDeleteClick('2')}>Delete from me</div>
+                    <div onClick={() => setIsDeleteMode(false)}>Cancel</div>
+                </div>
+            }
+            {isUserChoiceModalOpened &&
+            <div style={{"position": "absolute", "left": "40%", "top": "20%", "width": "20%", "height": "60%"}}>
+                <div style={{"background": "green", "color": "white", "height": "30px", "display": "flex"}}>
+                    <span>Cancel</span>
+                    <span>Resend messages</span>
+                </div>
+                <input onChange={e => onSearchInputChange(e.currentTarget.value)}/>
+
+                <div>
+                    {foundUsersFromUserSearch.map(u => <div style={{"display": "flex"}}>
+                        <input
+                            type={"checkbox"}
+                            checked={!!selectedUsersToResendMessages.find(fu => fu.id === u.id)}
+                            onChange={e => setSelectedUsersToResendMessages(s => e.target.checked ? [...s, u] : s.filter(fu => fu.id !== u.id))}
+                        />
+                        <img
+                            src={
+                                avatar ?
+                                    baseURL + avatar
+                                    :
+                                    AVATAR
+                            }
+                            className={'avatar'}
+                        />
+                        <span>{u.username ?? u.name}</span>
+                    </div>)}
+                </div>
+                {selectedUsersToResendMessages.length !== 0 &&
+                    <div style={{"display": "flex", "justifyContent": "space-between"}}>
+                    <span>{selectedUsersToResendMessages.map(u => u.username).reverse().join(', ')}</span>
+                    <span onClick={onSend}>Send</span>
+                </div>}
+            </div>}
             <div>
                 <div className={'chat_panel'} /*onClick={() => push(`/profile?${isUserCurrentChat ? 'user-id' : 'group-id'}=${companionData.id}`)}*/ onClick={() => setIsProfileShowed(true)} style={{display: "flex", alignItems: "center"}}>
                     <img
@@ -401,23 +535,77 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
                 </div>
                 <div ref={messageListRef} style={{background: 'green', width: '620px', overflow: "scroll", height: '650px'}}>
                     {
-                        currentChatMessagesState?.map((m, i) => {
-                            return <Message
-                                currentChatMessages={currentChatMessages}
-                                i={i}
-                                m={m}
-                                companionData={companionData}
-                                user={user}
-                                firstUnreadMessageId={firstUnreadMessageId}
-                                messageRef={refs[i]}
-                                usernameOrGroupName={usernameOrGroupName}
-                            />
+                        currentChatMessagesState?.map((m, i) => {//m.resent
+                            const messageToAnswer = m.message_to_answer_id ? m.resent ? messages.find(mm => mm.id === m.message_to_answer_id) : currentChatMessages.find(mm => mm.id === m.message_to_answer_id) : null
+                            const messageToAnswerFromUsername = m.message_to_answer_id ? users.find(u => u.id === messageToAnswer.from_user_id).username : null
+                            const date = new Date(m.time)
+                            const time = getTimeFromDate(date)
+                            const day = date.getDate()
+                            const month = date.toLocaleString('default', { month: 'long' })
+                            const dataForUser = `${day} ${month}`
+                            return <div>
+                                {firstUnreadMessageId === i && <div>Unread messages</div>}
+                                {
+                                    (
+                                        (currentChatMessages && !currentChatMessages[i - 1])
+                                        ||
+                                        (currentChatMessages && currentChatMessages[i - 1] && m.time.split('T')[0] !== currentChatMessages[i - 1].time.split('T')[0])
+                                    ) && <div className={'message_data_label'}>{dataForUser}</div>
+                                }
+                                <div style={{"display": "flex"}}>
+                                    {isSelectMode && <input
+                                        type={"checkbox"}
+                                        onChange={e => onSelectMessage(e, m)}
+                                        checked={!!selectedMessages.find(sm => sm.id === m.id)}
+                                    />}
+                                    <Message
+                                        messageToAnswerFromUsername={messageToAnswerFromUsername}
+                                        messageToAnswer={messageToAnswer}
+                                        currentChatMessages={currentChatMessages}
+                                        i={i}
+                                        m={m}
+                                        companionData={companionData}
+                                        username={user.username}
+                                        firstUnreadMessageId={firstUnreadMessageId}
+                                        messageRef={refs[i]}
+                                        usernameOrGroupName={usernameOrGroupName}
+                                        setIsAnswerModeCallback={setIsAnswerModeCallback}
+                                        users={users}
+                                        setSelectedInfoMessage={setSelectedInfoMessage}
+                                        setIsSelectMode={setIsSelectMode}
+                                        setIsDeleteMode={setIsDeleteMode}
+                                        setSelectedMessage={setSelectedMessage}
+                                        deleteModalRef={deleteModalRef}
+                                    />
+                                </div>
+                            </div>
                         })
                     }
                 </div>
 
                 <div className={'chat_panel'}>
-                    <input value={text} onChange={e => onEnterMessageChange(e.currentTarget.value)} onKeyDown={onKeyDownHnd}/>
+                    {!!messageToAnswerId &&
+                        <div style={{"padding": "5px", background: "gray"}}>
+                        <div>{messageToAnswer.username}</div>
+                        <div>{messageToAnswer.text}</div>
+                        <div onClick={() => setMessageToAnswerId(0)}>Cancel</div>
+                    </div>}
+                    {
+                        isSelectMode &&
+                        <div style={{"display": "flex", "justifyContent": "space-between"}}>
+                        <div>
+                        <span onClick={() => setIsSelectMode(false)}>Cancel</span>
+                        <span>Selected: {selectedMessages.length}</span>
+                        </div>
+
+                        <div>
+                            <span>Favorites</span>
+                            <span>Delete</span>
+                            <span onClick={onOpenUserChoiceModal}>Resend</span>
+                        </div>
+                        </div>
+                    }
+                    <input ref={inputRef} value={text} onChange={e => onEnterMessageChange(e.currentTarget.value)} onKeyDown={onKeyDownHnd}/>
                     <button onClick={sendMessageHnd}>Send</button>
                 </div>
             </div>
@@ -494,6 +682,16 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
                     <span>No</span>
                 </div>
             </div>
+            }
+            {
+                Object.keys(selectedInfoMessage).length > 0 &&
+                <DataAboutMessage
+                    setIsAnswerModeCallback={setIsAnswerModeCallback}
+                    messageToAnswer={messageToAnswerOfMessageInInfoMode}
+                    username={user.username}
+                    selectedInfoMessage={selectedInfoMessage}
+                    setSelectedInfoMessage={setSelectedInfoMessage}
+                />
             }
         </div>
     );

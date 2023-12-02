@@ -19,6 +19,7 @@ import {addGroup, addGroups, setGroups} from "@/store/slices/groupSlice";
 import {Chat} from "@/components/chat/Chat";
 import {Message} from "@/components/Message";
 import SelectedCompanionMessenger from "@/components/selectedCompanionMessanger/SelectedCompanionMessenger";
+import {DataAboutMessage} from "@/components/dataAboutMessage/DataAboutMessage";
 
 export default function Index() {
     const dispatch = useDispatch()
@@ -898,6 +899,7 @@ export default function Index() {
                 </div>
                 </div>
             }
+
         </div>
         {companionId &&
             <SelectedCompanionMessenger
@@ -908,6 +910,7 @@ export default function Index() {
                 groupShowedWritingUsers={groupShowedWritingUsers}
                 messages={messages}
                 usersFromUserMessenger={usersFromUserMessenger}
+                // setSelectedInfoMessage={setSelectedInfoMessage}
             />
         }
     </div>
