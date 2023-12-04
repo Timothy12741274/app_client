@@ -2,11 +2,11 @@
 
 import {useRouter, useSearchParams} from "next/navigation";
 import cookie from "js-cookie";
-import {createRef, useEffect, useMemo, useRef, useState} from "react";
+import {useEffect, useMemo, useRef, useState} from "react";
 import {getDataString} from "@/fn/getDataString";
 import {inst, baseURL, AVATAR} from "@/const/const";
 import {useDispatch, useSelector} from "react-redux";
-import {addMessage, addMessages, setIsMessageLoading, setMessages, setReadMessage} from "@/store/slices/messageSlice";
+import {addMessages, setIsMessageLoading} from "@/store/slices/messageSlice";
 import {
     addUser,
     changeUsersStatus,
@@ -25,15 +25,12 @@ export default function Index() {
     const dispatch = useDispatch()
     const { get } = useSearchParams()
 
-    // if (!userId) return <div>Loading...</div>
-
-    const { users, companionData, userId } = useSelector(state => state.userData)
+    const { users, userId } = useSelector(state => state.userData)
     const groups = useSelector(state => state.groupData.groups)
 
-    console.log('usersIn', users)
     const user = users.find(u => u.id === Number(userId))
 
-    const { messages, isMessageLoading } = useSelector(state => state.messageData)
+    const { messages } = useSelector(state => state.messageData)
 
     const { push } = useRouter()
 
@@ -43,21 +40,11 @@ export default function Index() {
 
     const [usersFromSearch, setUsersFromSearch] = useState([])
 
-    // const [usersFromNewGroupMemberSearch, setUsersFromNewGroupMemberSearch] = useState([])
-
-    // const [messagesFromSearch, setMessagesFromSearch] = useState([])
-
-    // const [allUsers, setAllUsers] = useState()
-
     const [isMenuShowed, setIsMenuShowed] = useState(false)
 
     const [leftSideBarState, setLeftSideBarState] = useState('users')
 
     const [isMoreInSettingsShowed, setIsMoreInSettingsShowed] = useState(false)
-
-    // const [companionData, setCompanionData] = useState({})
-
-    // const [currentChatMessagesState, setCurrentChatMessagesState] = useState([])
 
     const [isWriteListOpened, setIsWriteListOpened] = useState(false)
 
@@ -65,15 +52,9 @@ export default function Index() {
 
     const [newGroupName, setNewGroupName] = useState('')
 
-    // const [typingUserChats, setTypingUserChats] = useState([]) //type chat users
-
     const [newGroupCreationInputValue, setNewGroupCreationInputValue] = useState('')
 
     const [writingUsers, setWritingUsers] = useState([])
-
-    // const [writingUser, setWritingUser] = useState({})
-
-    // const [writingGroupUsers, setWritingGroupUsers] = useState([])
 
     const [writingUserGroups, setWritingUserGroups] = useState([])
 
@@ -82,29 +63,6 @@ export default function Index() {
     const userIdFromUrl = get('user-id');
     const groupIdFromUrl = get('group-id');
 
-
-
-    // const [isProfileShowed, setIsProfileShowed] = useState(false)
-
-    // const [isAddMembersToGroupModalShowed, setIsAddMembersToGroupModalShowed] = useState(false)
-
-    // const [isDeleteMemberModalShowed, setIsDeleteMemberModalShowed] = useState(false)
-
-
-
-
-
-    // const currentChatMessages = useMemo(() => {
-    //     // const filteredAndSortedMessages = messages
-    //     //     .filter(m =>
-    //     //         (m.from_user_id === companionData.id || m.to_user_id === companionData.id) &&
-    //     //         (m.from_user_id === Number(userId) || m.to_user_id === Number(userId))
-    //     //     )
-    //     //     .sort(compareMessagesByDate)
-    //     // debugger
-    //     return filteredAndSortedMessages
-    //
-    // }, [messages, companionData])
     const chats = useMemo(() => {
         let chats = []
         for (let i = 0; i < messages.length; i++) {
@@ -157,88 +115,33 @@ export default function Index() {
         return chats
     }, [messages])
 
-
-
-
-
-    // console.log(get('user-id'), get('group-id'))
-
-
-
     const ref = useRef(null)
 
     const logOutBtnRef = useRef(null)
 
-    // useEffect(() => {
-    //     // console.log('changed currChatMess')
-    //     setCurrentChatMessagesState(currentChatMessages)
-    // }, [currentChatMessages])
+    const modalPhotoRef = useRef(null)
 
+    const pageRef = useRef(null)
+    const [modalPhotoSrc, setModalPhotoSrc] = useState('')
 
-    // useEffect(() => {
-    //     console.log(currentChatMessages)
-    // }, [currentChatMessages])
-
-
-
-    // window.messages = messages
-    // window.users = users
-
-    // console.log('chats', chats)
-    // console.log('users', users)
-    // console.log('messages', messages)
-    // console.log('usersFromSearch', usersFromSearch)
-    // console.log('chats', chats)
     useEffect(() => {
     }, [messages])
     useEffect(() => {
-        // getAndSetAllUsers()
-        // if (get('user-id')) getMessages()
-
-        // if (users.length === 0 || messages.length === 0) {
         inst.get('/groups_and_users')
             .then(( { data: { groups, users } } ) => {
                 // setIsUsersLoading(false)
                 dispatch(setUsers(users))
                 dispatch(setGroups(groups))
             })
-        // if (userId) {
-        //     inst.get('/messages/get-user-messages/' + userId)
-        //         .then(({data}) => {
-        //             // setIsMessagesLoading(false)
-        //             dispatch(addMessages(data))
-        //             dispatch(setIsMessageLoading(false))
-        //         })
-        // }
-
-        // inst.get('/groups')
-        //     .then(res => {
-        //         dispatch(addGroups(res.data))
-        //     })
-
-        // }
-
-        // inst.post(`/users/${userId}/update-status`, {isOnline: true})
-        //     .then(() => {
-        //         const updatedUsers = users.map(u => u.id === Number(userId) ? {...u, is_online: true} : u)
-        //         console.log('2')
-        //         dispatch(setUsers(updatedUsers))
-        //     })
-
 
         const intervalId = setInterval(() => {
-            console.log('worked2')
             inst.get('/users/get-user-statuses')
                 .then(res => {
                     if (res.data.length > 0) {
-                        // const updatedUsers = users.map(u => res.data.map(u => u.id).includes(u.id) ? {...u, is_writing: !u.is_writing} : u)
-                        // dispatch(setUsers(updatedUsers))
-                        console.log('worked', res.data)
                         dispatch(changeUsersStatus(res.data))
                     }
                 })
         }, 10000)
-        // console.log('userId setting ', cookie.get('userId'))
         if (!userId) dispatch(setUserId(Number(cookie.get('userId'))))
         return () => {
             clearInterval(intervalId)
@@ -258,93 +161,13 @@ export default function Index() {
         const beforeUnloadHandler = () => {
             inst.post(`/users/${userId}/update-status`, {isOnline: false, lastOnlineDate: getDataString(), userId})
         }
-        console.log(userId, 'userId')
-        // if (!userId) {
             window.addEventListener('beforeunload', beforeUnloadHandler)
-        // }
 
         return () => {
             window.removeEventListener('beforeunload', beforeUnloadHandler)
         }
 
     }, [userId])
-
-    // useEffect(() => {
-    //     console.log('w1')
-    //     if (userId) {
-    //         console.log('w2')
-    //         inst.get('/messages/get-user-messages/' + userId)
-    //             .then(({data}) => {
-    //                 console.log('w3', data)
-    //                 // setIsMessagesLoading(false)
-    //                 dispatch(addMessages(data))
-    //             })
-    //     }
-    // }, [userId])
-
-
-
-
-    // useEffect(() => {
-    //     const intervalId = setInterval(() => {
-    //         if (writingGroupUsers.length < 2) {
-    //             if (writingGroupUsers.length === 1) setWritingUser(writingGroupUsers[0])
-    //
-    //             setWritingGroupUsers(writingUsers.find(u => currentChatMessages.slice(-1)[0].to_user_ids.includes(u.id) && u.is_writing))
-    //         } else {
-    //             const newWritingGroupUsers = writingGroupUsers.filter(u => u.id !== writingUser.id)
-    //             const randomIndex = Math.floor(Math.random() * newWritingGroupUsers.length)
-    //
-    //             setWritingUser(writingGroupUsers[randomIndex])
-    //             setWritingGroupUsers(newWritingGroupUsers)
-    //         }
-    //
-    //
-    //
-    //         const groupWritingUsers = writingUsers.filter(u => currentChatMessages.slice(-1)[0].to_user_ids.includes(u.id) && u.is_writing)
-    //         if (groupWritingUsers.length > 1) {
-    //
-    //         }
-    //     }, 2000)
-    //
-    //     return () => {
-    //         clearInterval(intervalId)
-    //     }
-    // }, [])
-
-    // let currentChatIndex
-    //
-    // useEffect(() => {
-    //     if (chats && currentChatMessagesState && currentChatMessagesState[0]) currentChatIndex = chats.indexOf(chats.find(c => c[0].id === currentChatMessagesState[0].id))
-    // }, [chats, currentChatMessagesState])
-
-    // const getAndSetAllUsers = async () => {
-    //     const { data: { rows: users } } = await inst.get('/users?count=5')
-    //
-    //     setAllUsers(users)
-    // }
-
-    // const getMessages = async () => {
-    //     setIsMessageLoading(true)
-    //     const params = {firstUserId: cookie.get('userId'), secondUserId: get('user-id')}
-    //
-    //      const { data: messages } = await inst.get('/messages', { params })
-    //
-    //
-    //     dispatch(addMessages(messages))
-    //
-    //     setIsMessageLoading(false)
-    // }
-
-
-
-    const userIdsFromUserMessenger = messages.map(u => u.from_user_id === userId ? u.to_user_id : u.from_user_id)
-    // const groupsFromUserMessenger = messages.reduce((acc, curr) => {
-    //     return curr.group_id && !acc.includes(curr.group_id) ? [...acc, curr] : acc
-    // }, [])
-    // const usersFromUserMessenger = users
-    //     .filter(u => userIdsFromUserMessenger.includes(u.id))
-    //     .filter(u => u.id !== Number(userId))
 
     const usersFromUserMessenger = chats.map(c => {
         if (c[0].group_id) {
@@ -357,60 +180,6 @@ export default function Index() {
             }
         }
     })
-
-
-
-    // const refs = currentChatMessages.map(() => createRef())
-
-
-    // let refs
-
-
-
-
-
-
-
-
-
-    // const scrollToUnread = () => {
-    //     setHasRefInitialized(true)
-    //
-    //
-    //     const unreadMessageIds = currentChatMessages
-    //         .filter(m => !m.read && m.from_user_id !== Number(userId))
-    //         .map(m => m.id)
-    //
-    //     const unreadMessagesHeight = refs.filter((r, i) => unreadMessageIds.includes(i)).reduce((acc, curr) => {
-    //         return acc + curr.current.scrollHeight
-    //     }, 0)
-    //
-    //     if (firstUnreadMessageId && unreadMessagesHeight > 650) {
-    //         refs[firstUnreadMessageId].current.scrollIntoView({ behavior: 'smooth' })
-    //     } else {
-    //             messageListRef.current.scrollTop = messageListRef.current.scrollHeight
-    //     }
-    // }
-
-
-
-    // useEffect(() => {
-    //     if (messageListRef.current) {
-    //         setTimeout(() => {
-    //             messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
-    //         }, 0);
-    //     }
-    // }, [messageListRef.current && messageListRef.current.scrollHeight, currentChatMessagesState])
-
-
-
-
-
-
-
-
-
-    /////////////
 
     useEffect(() => {
         if (selectedUsersForNewGroup.length === 0 && user) setSelectedUsersForNewGroup([user])
@@ -426,8 +195,6 @@ export default function Index() {
             let writingUserGroupsCopy = [...writingUserGroups]
             let groupShowedWritingUsersCopy = [...groupShowedWritingUsers]
             for (let i = 0; i < chats.length; i++) {
-                // const writingGroupUsers = writingUserGroupsCopy[i]
-
                 const currentChatMessages = chats.find(c => c[0]?.group_id === Number(groupIdFromUrl))
                 const currentChatLastMessage = currentChatMessages.slice(-1)[0]
                 let writingGroupUsers = writingUsers.filter(u =>
@@ -438,9 +205,6 @@ export default function Index() {
                 groupShowedWritingUsersCopy[i] = null
                 writingUserGroupsCopy[i] = []
                 let newWritingUser
-                if (writingUsers.length !== 0) {
-                    //debugger
-                }
                 if (!writingGroupUsers) break
                 else if (writingGroupUsers.length < 2) {
                     if (writingGroupUsers.length === 1) {
@@ -448,16 +212,9 @@ export default function Index() {
                         groupShowedWritingUsersCopy[i] = newWritingUser
                     }
 
-
-
-                    // newWritingGroupUsers = writingUsers.filter(u =>
-                    //     (currentChatLastMessage.to_user_ids.includes(u.id) || currentChatLastMessage.from_user_id === u.id)
-                    //     && u.is_writing
-                    // )
                     writingUserGroupsCopy[i] = writingGroupUsers
 
                 } else {
-                    // const newWritingGroupUsers = writingGroupUsers.filter(u => u.id !== writingUser.id)
                     const randomIndex = Math.floor(Math.random() * writingGroupUsers.length)
 
                     newWritingUser = writingGroupUsers[randomIndex]
@@ -480,8 +237,6 @@ export default function Index() {
             setWritingUserGroups(chats.map(c => []))
         }
     }, [chats])
-
-
 
     const onNewGroupCreatingInputChange = (v) => {
         setNewGroupCreationInputValue(v)
@@ -522,17 +277,12 @@ export default function Index() {
         }
 
         const foundMessages = messages.filter(m => m.text.includes(v))
-
-        // setMessagesFromSearch(foundMessages)
-
         if (leftNavState === 'searchInputIsFocused' && v.length > 0) setLeftNavState('search')
         else if (v.length === 0) setLeftNavState('searchInputIsFocused')
 
 
     }
 
-
-    
     const onSearchInputFocus = (v) => {
       if (leftNavState === 'noSearch') setLeftNavState('searchInputIsFocused')
     }
@@ -611,41 +361,42 @@ export default function Index() {
         setSelectedUsersForNewGroup(s => c ? [...s, u] : s.filter(mu => mu.id !== u.id))
     }
 
-
-
-
-
-
     const companionId = useMemo(() => userIdFromUrl || groupIdFromUrl, [userIdFromUrl, groupIdFromUrl])
 
+    const x = (e) => {
+      if (!modalPhotoRef.current.contains(e.target)) {
+          document.removeEventListener("click", x)
+          pageRef.current.style.background = ''
+          setModalPhotoSrc('')
+      }
+    }
 
-    // const avatar = companionData?.avatar_photo_urls?.slice(-1)[0] ?? companionData?.avatar_urls?.slice(-1)[0]
+    const setModalPhotoCallback = (url) => {
+        if (!modalPhotoSrc) {
+        setModalPhotoSrc(`${baseURL}${url}`)
+            pageRef.current.style.background = 'rgba(0, 0, 0, 0.7)'
 
-
-
-    // if (companionData && companionData.last_online_date) {
-    //     lastOnlineDateObj = new Date(companionData.last_online_date)
-    //
-    //     lastSeenCompanionTime = getTimeFromDate(lastOnlineDateObj)
-    //
-    //     lastOnlineDateDay = lastOnlineDateObj.getDate()
-    //
-    //     lastOnlineDateMonth = lastOnlineDateObj.toLocaleString('default', { month: 'long' })
-    //
-    //     lastOnlineDateFormatted = `${lastOnlineDateDay} ${lastOnlineDateMonth}`
-    //
-    //     isLastSeenDateOfCurrDay = new Date().toISOString().split('T')[0] === lastOnlineDateObj.toISOString().split('T')[0]
-    // }
-
-    // console.log(messages.filter(m => m.id === 79).length, chats[0]?.length)
-    console.log(users, groups, messages)
-
-    console.log(groupShowedWritingUsers, writingUserGroups, chats, writingUsers, 'yyy')
+            // modalPhotoRef.current.style.zIndex = '3'
+        document.addEventListener("click", x)
+        }
+    }
 
     if (!user) return <div>Loading</div>
 
+    return <div>
+        {modalPhotoSrc &&
+            <div>
+            <img
+                style={{position: "absolute", width: '64%', height: '68%', left: '19%', top: '16%', zIndex: '10'}}
+                ref={modalPhotoRef}
+                src={modalPhotoSrc}
+            />
+            <div style={{position: "absolute", width: '100%', height: '100%', background: "#000", opacity: '80%', zIndex: "9"}}>
+            </div>
+            </div>}
+        <div style={{display: "flex"}} ref={pageRef}>
 
-    return <div style={{display: "flex"}}>
+
         <div>
             {
                 leftSideBarState === 'createNameForNewGroup' && <div>
@@ -731,41 +482,7 @@ export default function Index() {
                     }
                     {leftNavState === 'searchInputIsFocused' && <div>
                         <div style={{overflow: "auto", width: '100%'}}>
-                            {/*{*/}
-                            {/*    usersFromUserMessenger.map(u => u.username ?*/}
-                            {/*        <div onClick={() => onFoundUserClickHandler(u)}>*/}
-                            {/*            <img className={'avatar'}*/}
-                            {/*                 src={*/}
-                            {/*                     u.avatar_photo_urls?.slice(-1)[0]*/}
-                            {/*                         ?*/}
-                            {/*                         `${baseURL}${u.avatar_photo_urls?.slice(-1)[0]}`*/}
-                            {/*                         :*/}
-                            {/*                         AVATAR*/}
-                            {/*                 }*/}
-                            {/*            />*/}
-                            {/*            <div>{u.first_name}</div>*/}
-                            {/*        </div>*/}
-                            {/*        :*/}
-                            {/*        <div onClick={}>*/}
-                            {/*            <img className={'avatar'}*/}
-                            {/*                 src={*/}
-                            {/*                     u.avatar_urls?.slice(-1)[0]*/}
-                            {/*                         ?*/}
-                            {/*                         `${baseURL}${u.avatar_urls?.slice(-1)[0]}`*/}
-                            {/*                         :*/}
-                            {/*                         AVATAR*/}
-                            {/*                 }*/}
-                            {/*            />*/}
-                            {/*            <div>{u.name}</div>*/}
-                            {/*        </div>*/}
-                            {/*    )*/}
-                            {/*}*/}
                             {
-                                //////////
-
-
-
-
                                     chats.map(([ m ], i) => {
                                         let u
 
@@ -791,13 +508,6 @@ export default function Index() {
                                         </div>
                             }
                                     )
-
-
-
-
-
-
-                                ////////////////////
                             }
 
                         </div>
@@ -805,9 +515,6 @@ export default function Index() {
                             <div>Recent</div>
                             {
                                 user.found_chat_from_search_ids?.map(({id, is_group}) => {
-                                    // const u = users.find(u => u.id === id)
-                                    // const u = !!get('user-id') ? users.find(u => u.id === id) : groups.find(u => u.id === id)
-                                    console.log(id, is_group)
                                      const u = is_group ? groups.find(u => u.id === id) : users.find(u => u.id === id)
                                     const isUser = !!u.username
                                     const avatar_urls = isUser ? u.avatar_photo_urls : u.avatar_urls
@@ -827,40 +534,6 @@ export default function Index() {
                     }
                     {leftNavState === 'noSearch' && <div>
                         {
-                            // usersFromUserMessenger.map(u => {
-                            //     const userMessages = messages.filter(m => m.from_user_id === u.id || m.to_user_id === u.id)
-                            //
-                            //     const latestUserMessage = userMessages.reduce((latest, current) => {
-                            //         if (new Date(current.time) > new Date(latest.time)) {
-                            //             return current;
-                            //         } else {
-                            //             return latest;
-                            //         }
-                            //     });
-                            //
-                            //     const currentDate = new Date(latestUserMessage.time)
-                            //
-                            //     const hours = String(currentDate.getHours()).padStart(2, '0')
-                            //     const minutes = String(currentDate.getMinutes()).padStart(2, '0')
-                            //
-                            //     const formattedTimeOfLatestUserMessage = `${hours}:${minutes}`
-                            //
-                            //     const unreadMessagesCount = userMessages.filter(m => !m.read && m.from_user_id !== Number(userId)).length
-                            //
-                            //     return <div style={{background: "wheat"}}
-                            //                 onClick={() => onFoundUserClickHandler(u)}
-                            //     >
-                            //         <img className={'avatar'}
-                            //              src={baseURL + !!u && !!u.avatar_photo_urls ? u?.avatar_photo_urls[0] : AVATAR}/>
-                            //         <div>
-                            //             <span>{u.username}</span>
-                            //             <span>{latestUserMessage.text}</span>
-                            //             {unreadMessagesCount > 0 && <span>{unreadMessagesCount}</span>}
-                            //         </div>
-                            //         <div>{formattedTimeOfLatestUserMessage}</div>
-                            //     </div>
-                            // })
-
                             chats.map(([ m ], i) => <Chat
                                 i={i}
                                 m={m}
@@ -910,28 +583,9 @@ export default function Index() {
                 groupShowedWritingUsers={groupShowedWritingUsers}
                 messages={messages}
                 usersFromUserMessenger={usersFromUserMessenger}
-                // setSelectedInfoMessage={setSelectedInfoMessage}
+                setModalPhotoCallback={setModalPhotoCallback}
             />
         }
     </div>
-}
-
-
-
-function compareMessagesByDate(m1, m2) {
-    return compareDates(m1.time, m2.time)
-}
-
-function compareDates(dateStr1, dateStr2) {
-    const date1 = new Date(dateStr1);
-    const date2 = new Date(dateStr2);
-
-    // Сравниваем даты
-    if (date1 > date2) {
-        return 1;
-    } else if (date1 < date2) {
-        return -1;
-    } else {
-        return 0;
-    }
+    </div>
 }

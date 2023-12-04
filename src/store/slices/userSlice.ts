@@ -58,7 +58,6 @@ const counterSlice = createSlice({
             }
         },
         setUserId: (state, action) => {
-            console.log(action.payload, 'payload')
             state.userId = action.payload
         }
     },

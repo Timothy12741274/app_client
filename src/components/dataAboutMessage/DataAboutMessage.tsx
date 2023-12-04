@@ -1,7 +1,6 @@
 import {Message} from "@/components/message/Message";
 
 export const DataAboutMessage = ({ selectedInfoMessage, setSelectedInfoMessage, messageToAnswer, username, setIsAnswerModeCallback}) => {
-    console.log('Z', selectedInfoMessage.read)
     return <div>
         <div>
             <span onClick={() => selectedInfoMessage({})}>Cancel</span>

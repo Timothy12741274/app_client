@@ -9,11 +9,7 @@ export const Chat = ({m, groups, users, chats, onFoundUserClickHandler, i, writi
         const uId = m.from_user_id === Number(userId) ? m.to_user_id : m.from_user_id
 
         u = users?.find(u => u.id === uId)
-        // console.log(users.find(u => u.id === uId), uId, users)
     }
-
-    // console.log('u', u)
-
 
     const avatar = u?.avatar_photo_urls?.slice(-1)[0] ?? u?.avatar_urls?.slice(-1)[0] ?? AVATAR
     const name = u?.first_name ??  u?.name
@@ -23,16 +19,6 @@ export const Chat = ({m, groups, users, chats, onFoundUserClickHandler, i, writi
     const lastMessageUserName = users.find(u => u.id === lastMessage.from_user_id).username
     let lastMessageShort = lastMessageUserName + ': ' + lastMessageText
     lastMessageShort = lastMessageShort.substring(0, 26).concat('...')
-
-    console.log(chats, lastMessage, 'Chat.tsx')
-
-
-
-    // const writingUser = chats[i].find(u => u.is_writing)
-    const isGroup = chats[i].length > 1
-
-    console.log(u, 'u', users, 'users')
-    console.log(groupIdFromUrl, !!groupIdFromUrl, 'XXXXXXXX')
 
     return <div onClick={() => onFoundUserClickHandler(u)} key={i}>
         <img className={'avatar'} src={avatar ?? AVATAR} />

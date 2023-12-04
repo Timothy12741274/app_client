@@ -1,9 +1,8 @@
 import React, {createRef, useEffect, useMemo, useRef, useState} from 'react';
 import {AVATAR, baseURL, inst, userId} from "@/const/const";
-// import {Message} from "@/components/Message";
 import {addGroup, setGroups} from "@/store/slices/groupSlice";
 import {getDataString} from "@/fn/getDataString";
-import {addMessage, addMessages, setMessages, setReadMessage} from "@/store/slices/messageSlice";
+import {addMessage, addMessages, setMessages} from "@/store/slices/messageSlice";
 import {getTimeFromDate} from "@/fn/getTimeFromDate";
 import {addUser, setCompanionData, setHasRefInitialized, setUsers} from "@/store/slices/userSlice";
 import {useSearchParams} from "next/navigation";
@@ -11,20 +10,14 @@ import {useDispatch} from "react-redux";
 import {useSelector} from "@/store/hooks/typedUseSelector";
 import {Message} from "@/components/message/Message";
 import {DataAboutMessage} from "@/components/dataAboutMessage/DataAboutMessage";
+import FormData from "form-data";
 
-const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUserMessenger, users, groupShowedWritingUsers, /*setSelectedInfoMessage*/}) => {
+const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUserMessenger, users, groupShowedWritingUsers, setModalPhotoCallback}) => {
     const { companionData, hasRefInitialized } = useSelector(state => state.userData)
 
     const { get } = useSearchParams()
 
-    const userIdFromUrl = get('user-id');
-    const groupIdFromUrl = get('group-id');
-
-    // const companion = isUserCurrentChat ? users.find(u => u.id === Number(userIdFromUrl)) : groups.find(g => g.id === Number(groupIdFromUrl))
-
     const isMessageLoading = useSelector(state => state.messageData.isMessageLoading)
-
-
 
     const dispatch = useDispatch()
 
@@ -61,33 +54,14 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
             :
             c[0].group_id === Number(get('group-id'))
         )
-        // console.log(get('user-id'), get('group-id'), 'aaa', filteredAndSortedMessages)
-        if (!filteredAndSortedMessages) {
-            console.log(chats)
-        }
-
-
-        // .filter(m =>
-        //     (m.from_user_id === companionData.id || m.to_user_id === companionData.id) &&
-        //     (m.from_user_id === Number(userId) || m.to_user_id === Number(userId))
-        // )
-        // .sort(compareMessagesByDate)
 
         return filteredAndSortedMessages
 
     }, [messages, companionData, chats, currentCompanionId])
 
-/*    const refs = useMemo(() => {
-        return currentChatMessages?.map(() => createRef())
-    }, [currentChatMessages])*/
-
     const [refs, setRefs] = useState([])
 
-    // const [companionStatus, setCompanionStatus] = useState()
-
     let firstUnreadMessageId = -1
-
-
 
     if (currentChatMessages) {
         currentChatMessages.map((m, i) => {
@@ -95,22 +69,12 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
         })
     }
 
-
-
-
-
     let lastOnlineDateObj
     let lastSeenCompanionTime
     let lastOnlineDateDay
     let lastOnlineDateMonth
     let lastOnlineDateFormatted
     let isLastSeenDateOfCurrDay
-
-    let timer = null
-
-
-    // const groupsAndUsers = [...groupsFromUserMessenger, ...usersFromUserMessenger]
-
 
     const addMembersInputRef = useRef(null)
 
@@ -129,22 +93,6 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
     }
 
     const [currentChatIndex, setCurrentChatIndex] = useState(-1)
-    // let currentChatIndex
-
-    // const handleIntersection = (entries, i) => {
-    //     entries.forEach((entry) => {
-    //         if (entry.isIntersecting) {
-    //             // Элемент появился на экране
-    //             // Вы можете выполнить здесь нужные действия
-    //             //console.log('Элемент появился на экране');
-    //             if (!currentChatMessages[i].read && currentChatMessages[i].from_user_id !== Number(userId)) {
-    //                 inst.put('/messages/' + i).then(() => dispatch(setReadMessage(i)))
-    //             }
-    //         }
-    //     });
-    // };
-
-
 
     const onKeyDownHnd = (e) => {
         if (e.key === 'Enter') {
@@ -154,21 +102,36 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
 
     const sendMessageHnd = () => {
         const time = getDataString()
-        let newMessage = { time, text, from_user_id: Number(userId), isRead: companionData.is_online }
+        const formData = new FormData()
 
-        if (messageToAnswerId) newMessage.messageToAnswerId = messageToAnswerId
+        formData.append('time', time)
+        formData.append('text', text)
+        formData.append('from_user_id', Number(userId))
+
+        if (messageToAnswerId) formData.append('messageToAnswerId', messageToAnswerId)
 
 
-        if (isUserCurrentChat) newMessage.to_user_id = companionData.id
-        else {
-            newMessage.to_user_ids = companionData.user_ids.filter(id => id !== Number(userId))
-            newMessage.group_id = companionData.group_id
+        if (isUserCurrentChat) {
+            formData.append('to_user_id', companionData.id)
+            formData.append('isRead', companionData.is_online)
+        }
+            else {
+                formData.append('to_user_ids', companionData.user_ids.filter(id => id !== Number(userId)))
+            formData.append('group_id', companionData.id)
+            formData.append('isRead', users.filter(u => companionData.user_ids.includes(u.id)).every(u => u.is_online))
         }
 
-        inst.post('/messages', newMessage)
-            .then(res => dispatch(addMessage(res.data)))
+        if (inputPhotos.length !== 0) {
+            for (let i = 0; i < inputPhotos.length; i++) {
+                formData.append('photos', inputPhotos[i])
+            }
+        }
+
+        inst.post('/messages', formData)
+            .then(({ data: { message }}) => message ? dispatch(addMessage(message)) : '')
 
         setText('')
+        setAddedImages([])
     }
 
     const onDeleteMember = (m) => {
@@ -196,8 +159,6 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
 
     const [isWriting, setIsWriting] = useState(false)
 
-    const [isAnswerMode, setIsAnswerMode] = useState(false)
-
     const [messageToAnswerId, setMessageToAnswerId] = useState(0)
 
     const [selectedMessages, setSelectedMessages] = useState([])
@@ -207,6 +168,10 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
     const [isDeleteMode, setIsDeleteMode] = useState(false)
     const deleteModalRef = useRef(null)
 
+    const moreMenuRef = useRef(null)
+
+    const fileInputRef = useRef(null)
+
     const [isUserChoiceModalOpened, setIsUserChoiceModalOpened] = useState(false)
 
     const [foundUsersFromUserSearch, setFoundUsersFromUserSearch] = useState([])
@@ -215,19 +180,19 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
 
     const [selectedMessage, setSelectedMessage] = useState({})
 
+    const [isMoreOpened, setIsMoreOpened] = useState(false)
+
+    const [inputPhotos, setInputPhotos] = useState([])
+
+    const [addedImages, setAddedImages] = useState([])
+
     const messageToAnswer = useMemo(() => {
         return currentChatMessagesState.find(m => m.id === messageToAnswerId)
     }, [currentChatMessagesState, messageToAnswerId])
 
     const messageToAnswerOfMessageInInfoMode = messages.find(m => m.message_to_answer_id === selectedInfoMessage.message_to_answer_id)
 
-    const onEnterMessageChange = v => { 
-        // inst.post('/users/' + userId + '/update-writing-status', { isWriting: true})
-        // clearInterval(timer)
-        //
-        // timer = setTimeout(() => {
-        //     inst.post('/users/' + userId + '/update-writing-status', { isWriting: false})
-        // }, 2000)
+    const onEnterMessageChange = v => {
         if (!isWriting) setIsWriting(true)
         setText(v)
     }
@@ -301,12 +266,34 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
               })
     }
 
+    const x = (e) => {
+      if (moreMenuRef.current.contains(e.target)) {
+          document.removeEventListener("click", x)
+          setIsMoreOpened(false)
+      }
+    }
+
+    const onMoreClick = () => {
+        document.addEventListener("click", x)
+        setIsMoreOpened(true)
+    }
+
+    const onFileInputChange = (e) => {
+        // console.log([...e.target.files], 'FILES')
+        const r = new FileReader()
+        const lastAddedFile = e.target.files[e.target.files.length - 1]
+        r.onload = (e) => {
+           setAddedImages(s => [...s, r.result])
+        }
+        r.readAsDataURL(lastAddedFile)
+        setInputPhotos(s => [...s, lastAddedFile])
+        fileInputRef.current.value = null
+    }
+
 
 
     useEffect(() => {
-        // console.log(chats.indexOf(chats.find(c => c[0].id === currentChatMessagesState[0].id)), 'ooooooo')
         if (chats && currentChatMessagesState && currentChatMessagesState[0]) setCurrentChatIndex(chats.indexOf(chats.find(c => c[0].id === currentChatMessagesState[0].id)))
-        // if (chats && currentChatMessagesState && currentChatMessagesState[0]) currentChatIndex = chats.indexOf(chats.find(c => c[0].id === currentChatMessagesState[0].id))
     }, [chats, currentChatMessagesState])
 
     useEffect(() => {
@@ -325,7 +312,6 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
                         }
                     })
             }
-            // console.log('here', messages, Array.from(new Map(messages.map(obj => [obj.id, obj])).values()))
             if (messages && messages.length > 0) {
                 const maxMessageId = messages.map(m => m.id).reduce((acc, curr) => acc > curr ? acc : curr)
                 inst.get(`/messages/added-messages`, { params: {'max_message_id': maxMessageId}})
@@ -344,7 +330,6 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
     }, [companionData, messages, isUserCurrentChat, isWriting])
 
     useEffect(() => {
-        // console.log('changed currChatMess')
         setCurrentChatMessagesState(currentChatMessages)
     }, [currentChatMessages])
 
@@ -379,13 +364,6 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
                         dispatch(addGroup(res.data))
                     })
             }
-
-
-            // inst.get('/users/get-user/' + get('user-id')).then(( res  => {
-            //     console.log('user', res.data.user, res.data)
-            //     setCompanionData(res.data.user)
-            //     dispatch(addUsers(res.data.user))
-            // }))
         } else if (companionFromState && companionData.id !== companionFromState.id) {
             dispatch(setCompanionData(companionFromState))
         }
@@ -399,14 +377,11 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
 
     useEffect(() => {
         setRefs(currentChatMessages?.map(() => createRef()))
-        console.log('1', currentChatMessages?.map(() => createRef()))
-        // refs = currentChatMessages?.map(() => createRef())
     }, [currentChatMessages])
 
     useEffect(() => {
         setRefs(currentChatMessages?.map(() => createRef()))
         console.log('1', currentChatMessages?.map(() => createRef()))
-        // refs = currentChatMessages?.map(() => createRef())
     }, [])
 
 
@@ -436,20 +411,9 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
 
     }
 
-    // const status =                     companionData.is_online ?
-    //     companionData.is_writing ?
-    //         'Typing...' :
-    //         'Online'
-    //     :
-    //     companionData.last_online_date ?
-    //         'Last seen at ' + isLastSeenDateOfCurrDay ? lastSeenCompanionTime : lastOnlineDateFormatted
-    //         :
-    //         'Offline'
-    //
-    // console.log(status, 'status')
-
-     console.log(groupShowedWritingUsers, currentChatIndex, 'pppppp')
-    // console.log(groupShowedWritingUsers.length > 0, groupShowedWritingUsers[currentChatIndex], groupShowedWritingUsers[currentChatIndex], `${groupShowedWritingUsers[currentChatIndex]} is writing...`, 'LLLLLLLL')
+    const setMessagesCallback = (message) => {
+      dispatch(setMessages(messages.map(m => m.id === message.id ? message : m)))
+    }
 
     if (isMessageLoading || typeof companionData?.id === 'undefined' || (!refs && currentChatMessages && currentChatMessages.length > 0)) return <div><div>Loading...</div><div>{isMessageLoading && 'first'} {!companionData?.id && 'second'}</div></div>
 
@@ -497,7 +461,7 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
                 </div>}
             </div>}
             <div>
-                <div className={'chat_panel'} /*onClick={() => push(`/profile?${isUserCurrentChat ? 'user-id' : 'group-id'}=${companionData.id}`)}*/ onClick={() => setIsProfileShowed(true)} style={{display: "flex", alignItems: "center"}}>
+                <div className={'chat_panel'} onClick={() => setIsProfileShowed(true)} style={{display: "flex", alignItems: "center"}}>
                     <img
                         src={
                             avatar ?
@@ -539,7 +503,6 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
                             const messageToAnswer = m.message_to_answer_id ? m.resent ? messages.find(mm => mm.id === m.message_to_answer_id) : currentChatMessages.find(mm => mm.id === m.message_to_answer_id) : null
                             const messageToAnswerFromUsername = m.message_to_answer_id ? users.find(u => u.id === messageToAnswer.from_user_id).username : null
                             const date = new Date(m.time)
-                            const time = getTimeFromDate(date)
                             const day = date.getDate()
                             const month = date.toLocaleString('default', { month: 'long' })
                             const dataForUser = `${day} ${month}`
@@ -576,6 +539,8 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
                                         setIsDeleteMode={setIsDeleteMode}
                                         setSelectedMessage={setSelectedMessage}
                                         deleteModalRef={deleteModalRef}
+                                        setMessagesCallback={setMessagesCallback}
+                                        setModalPhotoCallback={setModalPhotoCallback}
                                     />
                                 </div>
                             </div>
@@ -605,6 +570,18 @@ const SelectedCompanionMessenger = ({chats, groups, messages, user, usersFromUse
                         </div>
                         </div>
                     }
+                    <div>
+                        {
+                            addedImages.map(i => <img src={i}/>)
+                        }
+                    </div>
+                    <input type={"file"} multiple accept={'image/*'} ref={fileInputRef} onChange={onFileInputChange}/>
+                    {isMoreOpened && <div ref={moreMenuRef}>
+                        <span>
+                            <span>Photos</span>
+                        </span>
+                    </div>}
+                    <span onClick={onMoreClick}>More</span>
                     <input ref={inputRef} value={text} onChange={e => onEnterMessageChange(e.currentTarget.value)} onKeyDown={onKeyDownHnd}/>
                     <button onClick={sendMessageHnd}>Send</button>
                 </div>

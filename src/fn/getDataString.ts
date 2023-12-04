@@ -45,7 +45,6 @@ export const getDataString = () => {
     // Собрать строку даты
     const formattedDateTime = `${year}-${formattedMonth}-${formattedDay} ${hours}:${minutes}:${seconds}`;
     // const formattedDateTime = `${formattedDay}/${formattedMonth}/${year}, ${formattedTime}`;
-    console.log(formattedDateTime)
 
     return formattedDateTime;
 }

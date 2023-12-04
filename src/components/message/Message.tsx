@@ -1,28 +1,17 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {userId} from "@/const/const";
+import {baseURL, inst, userId} from "@/const/const";
 import {getTimeFromDate} from "@/fn/getTimeFromDate";
-import {Picker} from "@/components/picker/Picker";
-import {ReactionBarSelector} from "@charkour/react-reactions";
 import {useSearchParams} from "next/navigation";
-// import 'emoji-mart/css/emoji-mart.css';
+import EmojiPicker from "emoji-picker-react";
 
-export const Message = ({m, /*i,*/ messageRef, setIsSelectMode, setIsDeleteMode, setSelectedMessage, deleteModalRef, /*firstUnreadMessageId, currentChatMessages,*/ /*companionData,*/ /*time,*/ /*user,*/ username, /*usernameOrGroupName,*/ setIsAnswerModeCallback, /*users,*/ setSelectedInfoMessage, messageToAnswer, messageToAnswerFromUsername /*messageToAnswer, messageToAnswerFromUsername*/}) => {
+export const Message = ({m, messageRef, setIsSelectMode, setIsDeleteMode, setSelectedMessage, deleteModalRef, setMessagesCallback, setModalPhotoCallback, username, setIsAnswerModeCallback, setSelectedInfoMessage, messageToAnswer, messageToAnswerFromUsername}) => {
 
     const [isMoreShowed, setIsMoreShowed] = useState(false)
 
     const [isReactShowed, setIsReactShowed] = useState(false)
 
-    const ref = useRef()
-
     const reactionBarSelectorRef = useRef(null)
 
-    // const date = new Date(m.time)
-    //
-    // const day = date.getDate()
-    //
-    // const month = date.toLocaleString('default', { month: 'long' })
-
-    // const time = getTimeFromDate(date)
     const date = new Date(m.time)
     const time = getTimeFromDate(date)
 
@@ -30,31 +19,22 @@ export const Message = ({m, /*i,*/ messageRef, setIsSelectMode, setIsDeleteMode,
 
     const isGroup = !!get('group-id')
 
-    // const dataForUser = `${day} ${month}`
-
     const isSelf = m.from_user_id === Number(userId)
 
-    // const messageToAnswer = m.message_to_answer_id ? currentChatMessages.find(mm => mm.id === m.message_to_answer_id) : null
-    // const messageToAnswerFromUsername = m.message_to_answer_id ? users.find(u => u.id === messageToAnswer.from_user_id).username : null
-    
     const x = () => {
-        console.log('WWW2')
         document.removeEventListener("click", x)
         setIsMoreShowed(false)
     }
 
     const y = (e) => {
-        console.log('in', reactionBarSelectorRef.current, 'contains', e.target)
         if (reactionBarSelectorRef.current && !reactionBarSelectorRef.current.contains(e.target)) {
             setIsReactShowed(false)
             document.removeEventListener("click", y)
         }
     }
 
-    console.log('not in', reactionBarSelectorRef.current)
 
     useEffect(() => {
-        console.log('WWW', isMoreShowed)
         if (isMoreShowed) {
             document.addEventListener("click", x)
         }
@@ -78,9 +58,20 @@ export const Message = ({m, /*i,*/ messageRef, setIsSelectMode, setIsDeleteMode,
         document.addEventListener("click", x1)
     }
 
-    const onReactionSelect = (e) => {
-
+    const onReactionSelect = ({ emoji }) => {
+        setIsReactShowed(false)
+        inst.put('/messages/react', { messageId: m.id, emoji, addEmoji: true })
     }
+
+    const onReactionClick = (k) => {
+        inst.put('/messages/react', { messageId: m.id, emoji: k, addEmoji: k !== m.reacted_user_ids[userId] } )
+            .then(({ data: updatedMessage}) => {
+                setMessagesCallback(updatedMessage)
+            })
+    }
+
+
+
 
     if (!messageRef) messageRef = useRef()
     if (!messageToAnswerFromUsername) messageToAnswerFromUsername = username
@@ -92,19 +83,9 @@ export const Message = ({m, /*i,*/ messageRef, setIsSelectMode, setIsDeleteMode,
 
 
     return <div
-        // key={i}
-        /*ref={(el) => (divRefs.current[i] = el)}*/
         ref={messageRef}
+        style={{"position": "relative"}}
     >
-        {/*{firstUnreadMessageId === i && <div>Unread messages</div>}*/}
-        {/*{*/}
-        {/*    (*/}
-        {/*        (currentChatMessages && !currentChatMessages[i - 1])*/}
-        {/*        ||*/}
-        {/*        (currentChatMessages && currentChatMessages[i - 1] && m.time.split('T')[0] !== currentChatMessages[i - 1].time.split('T')[0])*/}
-        {/*    ) && <div className={'message_data_label'}>{dataForUser}</div>*/}
-        {/*}*/}
-
 
         <div className={m.from_user_id === Number(userId) ? 'user_message' : 'companion_message'}>
             {isMoreShowed && <div style={{position: "absolute", "background": "white"}}>
@@ -116,14 +97,23 @@ export const Message = ({m, /*i,*/ messageRef, setIsSelectMode, setIsDeleteMode,
                 {/*<div>In favorites</div>*/}
                 <div onClick={onDeleteBtnClick}>Delete</div>
             </div>}
-            {isReactShowed && <ReactionBarSelector ref={reactionBarSelectorRef} style={{"position": "absolute", "right": "-15px", "top": "-55px"}} onSelect={onReactionSelect}/>}
-            {/*Array.isArray(companionData)*/ isGroup && <div>{isSelf ? username : "here should be userame of that who writted that message"}{/*usernameOrGroupName*/}</div>}
+            {isReactShowed &&
+                <div ref={reactionBarSelectorRef} style={{"position": "absolute", "right": "-15px", "top": "-55px", "zIndex":"1"}}>
+                    <EmojiPicker
+                                 onEmojiClick={onReactionSelect}/>}
+                </div>
+            }
+                    { isGroup && <div>{isSelf ? username : "here should be userame of that who writted that message"}</div>}
             {m.message_to_answer_id && <div style={{"padding": "5px", "background": "wheat", "borderRadius": "9px"}}>
                 <div>{messageToAnswerFromUsername}</div>
                 <div>{messageToAnswer.text}</div>
             </div>}
+            {m.photos.length !== 0 && <div>
+                {
+                    m.photos.map(p => <img onClick={() => setModalPhotoCallback(p)} src={`${baseURL}${p}`}/>)
+                }
+            </div>}
             <div>{m.text}</div>
-            {/*<div>{m.time.substring(11, 16)}</div>*/}
             <div>{time}</div>
             <div>{m.read ? 'Read' : 'Unread'}</div>
             <div
@@ -131,6 +121,15 @@ export const Message = ({m, /*i,*/ messageRef, setIsSelectMode, setIsDeleteMode,
                 onClick={() => setIsMoreShowed(true)}
                 id={'moreButton'}
             >More</div>
+            {m.emojis.length > 0 && <div style={{"position": "absolute", "right": "20px", "fontSize": "18px", "display": "flex", zIndex: 2}}>
+                {
+                    m.emojis.map(e => {
+                        return Object.keys(e).map(k => {
+                            return <div style={{background: "white", "borderRadius": "16px", padding: '2px 6px'}} onClick={onReactionClick}>{k} {e[k]}</div>
+                        })
+                    })
+                }
+            </div>}
         </div>
     </div>
 }
